@@ -20,7 +20,7 @@ from app.extraction import Asked, AskedField, Context, Extraction, Stage, saniti
 from app.form import MAX_TRAVELLERS, Traveller, TripForm, unknown_ids
 from app.resolver import Checklist, effective_profession, missing_fields, resolve
 from app.templates import Button
-from app.text import MAX_MESSAGE_CHARS, MessageTooLong, clean
+from app.text import MAX_MESSAGE_CHARS, MessageTooLong, clean, has_devanagari
 from app.tree import LoadedTree
 
 log = logging.getLogger(__name__)
@@ -82,6 +82,7 @@ def merge(form: TripForm, ex: Extraction, *, overwrite: bool) -> tuple[TripForm,
     used: set[int] = set()
     removals: set[int] = set()
     overflow = False
+    added_other = False
 
     for patch in ex.travellers:
         idx: int | None = patch.ref if patch.ref is not None and patch.ref < len(people) else None
@@ -102,6 +103,7 @@ def merge(form: TripForm, ex: Extraction, *, overwrite: bool) -> tuple[TripForm,
                 continue
             people.append({"relation": patch.relation})
             idx = len(people) - 1
+            added_other = added_other or patch.relation != "self"
         used.add(idx)
         if patch.remove:
             removals.add(idx)
@@ -128,11 +130,16 @@ def merge(form: TripForm, ex: Extraction, *, overwrite: bool) -> tuple[TripForm,
         expected = ex.traveller_count
     if expected is not None and expected <= len(people):
         expected = None
+    # "with my family": wait for names; naming anyone (or "that's all") settles it.
+    pending = (form.others_pending or ex.others_coming) and not added_other
+    if ex.traveller_count is not None and ex.traveller_count <= len(people):
+        pending = False
     new = TripForm(
         country=country,
         purpose=purpose,
         travellers=tuple(Traveller(**t) for t in people),
         expected_count=expected,
+        others_pending=pending and bool(people),
     )
     return new, overflow
 
@@ -158,6 +165,7 @@ def prune(form: TripForm, tree: LoadedTree) -> TripForm:
         purpose=form.purpose if form.purpose in d.purposes else None,
         travellers=tuple(people),
         expected_count=form.expected_count,
+        others_pending=form.others_pending,
     )
 
 
@@ -250,18 +258,38 @@ class ChatEngine:
                     text=T.WHAT_CHANGE, buttons=(T.START_OVER,), stage=state.stage
                 )
 
+        # Things to say before the next question; each is a fixed template.
+        site = tree.data.meta.site_url
+        notes: list[str] = []
+        if ex.asks_help:
+            notes.append(T.help_text(tree))
+        if ex.other_country and not ex.country:
+            other = tree.data.other_countries[ex.other_country]
+            notes.append(T.unsupported(other.name, ex.other_country, site))
+        if ex.asks_office:
+            notes.append(T.office(site))
+
         overwrite = ex.intent == "correct" or state.stage != "collecting"
         form, overflow = merge(state.form, ex, overwrite=overwrite)
         progressed = form != state.form
-        if not progressed and state.form == TripForm() and state.misses + 1 < MISSES_BEFORE_BUTTONS:
+        if overflow:
+            notes.append(T.TOO_MANY.format(limit=MAX_TRAVELLERS))
+        quiet = not progressed and not notes
+        opener = quiet and state.form == TripForm() and not has_devanagari(message)
+        if opener and state.misses + 1 < MISSES_BEFORE_BUTTONS:
             # "hi", "hello", "hmm": nothing to fill yet, so just open again.
             state = state.model_copy(update={"misses": state.misses + 1})
             return state, BotReply(text=T.OPENING, stage=state.stage)
         state = state.model_copy(update={"form": form})
-        prefix = T.TOO_MANY.format(limit=MAX_TRAVELLERS) if overflow else None
-        if not progressed and prefix is None:
-            prefix = T.NOT_UNDERSTOOD
-        return self._ask_next(state, tree, prefix=prefix, progressed=progressed)
+        if quiet:
+            notes.append(T.HINDI_SCRIPT if has_devanagari(message) else T.NOT_UNDERSTOOD)
+        return self._ask_next(
+            state,
+            tree,
+            prefix=" ".join(notes),
+            progressed=not quiet,
+            purpose_choices=ex.purpose_choices,
+        )
 
     # ---------------------------------------------------------------- buttons
 
@@ -289,7 +317,7 @@ class ChatEngine:
                     update={"travellers": (*form.travellers, Traveller(relation=args[0]))}
                 )
         elif kind == "everyone" and form.travellers:
-            new = form.model_copy(update={"expected_count": None})
+            new = form.model_copy(update={"expected_count": None, "others_pending": False})
         elif (
             kind == "prof"
             and len(args) == 2
@@ -312,7 +340,13 @@ class ChatEngine:
     # ---------------------------------------------------------------- questions
 
     def _ask_next(
-        self, state: ChatState, tree: LoadedTree, *, prefix: str | None, progressed: bool
+        self,
+        state: ChatState,
+        tree: LoadedTree,
+        *,
+        prefix: str | None,
+        progressed: bool,
+        purpose_choices: tuple[str, ...] = (),
     ) -> tuple[ChatState, BotReply]:
         misses = 0 if progressed else state.misses + 1
         form = state.form
@@ -336,12 +370,17 @@ class ChatEngine:
             if gap.field == "country":
                 asked, text, buttons = ("country", ()), T.ASK_COUNTRY, T.country_buttons(tree)
             elif gap.field == "purpose":
-                asked, text, buttons = ("purpose", ()), T.ASK_PURPOSE, T.purpose_buttons(tree)
+                asked = ("purpose", ())
+                if len(purpose_choices) > 1:
+                    text = T.ask_main_purpose(purpose_choices, tree)
+                    buttons = T.purpose_buttons(tree, only=purpose_choices)
+                else:
+                    text, buttons = T.ASK_PURPOSE, T.purpose_buttons(tree)
             elif gap.field == "travellers":
                 more = bool(form.travellers)
                 text = T.ask_more(form) if more else T.ASK_WHO
                 asked = ("travellers", ())
-                buttons = T.who_buttons(form, tree) if show else ()
+                buttons = T.who_buttons(form, tree) if show or form.others_pending else ()
             else:
                 gaps = tuple(m.traveller for m in missing if m.traveller is not None)
                 kids = tuple(
@@ -379,6 +418,7 @@ class ChatEngine:
         state = state.model_copy(
             update={"stage": "done", "asked_field": "open", "asked_travellers": (), "misses": 0}
         )
+        text = T.result(checklist, tree.data.meta.site_url)
         return state, BotReply(
-            text=T.RESULT, buttons=(T.START_OVER,), checklist=checklist, stage="done"
+            text=text, buttons=(T.START_OVER,), checklist=checklist, stage="done"
         )

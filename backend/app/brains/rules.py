@@ -32,8 +32,13 @@ SOFT_SEPARATORS: Final = frozenset({",", "+"})
 HINDI_IN: Final = frozenset({"me", "mai", "main"})  # "Japan me" = "in Japan"
 HOST_PHRASE_ENDINGS: Final = frozenset({"my", "with", "a"})  # "visit my son" -> son is the host
 NO_PROFESSION_SWAP: Final = "retired"  # "retired army officer" -> retired wins
+# 'she' can't be a father or son; 'he' can't be a mother or daughter.
+PRONOUN_EXCLUDES: Final = {
+    "she": frozenset({"father", "son"}),
+    "he": frozenset({"mother", "daughter"}),
+}
 PERSON_KINDS: Final = frozenset(
-    {"relation", "we", "solo", "couple", "parents", "two_of_us", "pronoun"}
+    {"relation", "we", "solo", "couple", "parents", "two_of_us", "pronoun", "with_others"}
 )
 
 
@@ -45,6 +50,7 @@ class Span:
     sentence: int = 0
     segment: int = 0
     used: bool = False
+    fuzzy: bool = False  # matched by typo tolerance, so not fully certain
 
     @property
     def text(self) -> str:
@@ -82,6 +88,9 @@ class _Parse:
     adults: int | None = None  # "two adults and one child" -> adults + children
     country: str | None = None
     purpose: str | None = None
+    other_country: str | None = None
+    purpose_choices: list[str] = field(default_factory=list)
+    others_coming: bool = False
     conflict: bool = False
     unexplained: int = 0
     ambiguous: int = 0
@@ -98,12 +107,13 @@ class RulesBrain:
     def understand(self, message: str, ctx: Context) -> BrainResult:
         p = _Parse(self._scan(tokenize(message)))
         self._mark_boundaries(p)
-        self._make_mentions(p)
+        self._make_mentions(p, ctx)
         self._numbers(p, ctx)
         self._professions(p, ctx)
         self._places_and_purposes(p, ctx)
         self._removals(p)
         p.unexplained += sum(s.kind == "unknown" for s in p.spans)
+        p.ambiguous += sum(s.fuzzy for s in p.spans)
 
         extraction = self._build(p, ctx, message)
         confident = p.unexplained == 0 and p.ambiguous == 0
@@ -135,6 +145,8 @@ class RulesBrain:
                     spans.append(Span("weak_number", str(lex.numbers[tok]), (tok,)))
                 elif tok in lex.numbers:
                     spans.append(Span("number", str(lex.numbers[tok]), (tok,)))
+                elif guess := lex.guess(tok):
+                    spans.append(Span(guess[0], guess[1], (tok,), fuzzy=True))
                 else:
                     spans.append(Span("unknown", tok, (tok,)))
                 i += 1
@@ -184,19 +196,19 @@ class RulesBrain:
                 return [i]
         return self._new_slots(p, "self", 1, plural=False)
 
-    def _make_mentions(self, p: _Parse) -> None:
+    def _make_mentions(self, p: _Parse, ctx: Context) -> None:
         group = 0
         last_kind = ""
         for k, s in enumerate(p.spans):
             if s.kind in PERSON_KINDS and last_kind != "person":
                 group += 1
-            created = self._mention_for(p, k, s, group)
+            created = self._mention_for(p, k, s, group, ctx)
             if created:
                 last_kind = "person"
             elif s.kind not in ("conj", "comma", "plural"):
                 last_kind = s.kind
 
-    def _mention_for(self, p: _Parse, k: int, s: Span, group: int) -> bool:
+    def _mention_for(self, p: _Parse, k: int, s: Span, group: int, ctx: Context) -> bool:
         if s.kind == "relation":
             if s.value == "self":
                 slots = self._self_slot(p)
@@ -222,10 +234,12 @@ class RulesBrain:
             slots = self._reuse_or_new(p, s.value)
             p.mentions.append(Mention(k, slots, s.value, group=group))
             return True
-        if s.kind in ("we", "solo", "two_of_us"):
+        if s.kind in ("we", "solo", "two_of_us", "with_others"):
             slots = self._self_slot(p)
             p.mentions.append(Mention(k, slots, "self", group=group))
-            if s.kind == "solo":
+            if s.kind == "with_others":  # "with my family": the speaker goes, others unnamed
+                p.others_coming = True
+            elif s.kind == "solo":
                 p.count = 1
             elif s.kind == "two_of_us":
                 p.count = 2
@@ -244,8 +258,37 @@ class RulesBrain:
                 if m.relation != "self" and m.group != -1:
                     p.mentions.append(Mention(k, m.slots, m.relation, group=group))
                     return True
-            return False
+            # Nobody named in this message: "she is retired" means someone already listed,
+            # never "you". With several candidates it's a guess, so not confident.
+            others = self._pronoun_candidates(s, ctx)
+            if others:
+                ref = others[0]
+                slot = next((j for j, sl in enumerate(p.slots) if sl.ref == ref), None)
+                if slot is None:
+                    p.slots.append(Slot(ref=ref))
+                    slot = len(p.slots) - 1
+                relation = ctx.form.travellers[ref].relation
+                p.mentions.append(Mention(k, [slot], relation, group=group))
+                p.ambiguous += len(others) > 1
+            else:
+                p.mentions.append(Mention(k, [], "unknown", group=group))  # soaks up details
+                p.ambiguous += 1
+            return True
         return False
+
+    @staticmethod
+    def _pronoun_candidates(s: Span, ctx: Context) -> list[int]:
+        """Who 'she'/'he' can mean: people in the current question first, else the latest."""
+        travellers = ctx.form.travellers
+        pool = [i for i, t in enumerate(travellers) if t.relation != "self"]
+        asked = ctx.asked
+        if asked is not None and asked.field in ("profession", "age"):
+            preferred = [i for i in asked.travellers if i in pool]
+            pool = preferred or pool[::-1]
+        else:
+            pool = pool[::-1]
+        ruled_out = PRONOUN_EXCLUDES.get(s.tokens[0], frozenset())
+        return [i for i in pool if travellers[i].relation not in ruled_out] or pool
 
     def _reuse_or_new(self, p: _Parse, relation: str) -> list[int]:
         """A second mention of the same singular relation is the same person."""
@@ -278,7 +321,14 @@ class RulesBrain:
     def _nearest(self, p: _Parse, k: int, *, prefer_right: bool = False) -> Mention | None:
         same = self._mentions_in(p, p.spans[k].sentence)
         left = [m for m in same if m.pos < k]
-        right = [m for m in same if m.pos > k]
+        # A pronoun in a later clause refers to someone else: in "salaried, she is a
+        # housewife" the job is not hers. "freelancer, travelling alone" still links up.
+        right = [
+            m
+            for m in same
+            if m.pos > k
+            and (p.spans[m.pos].segment == p.spans[k].segment or p.spans[m.pos].kind != "pronoun")
+        ]
         if prefer_right and right:
             return right[0]
         if left:
@@ -378,7 +428,8 @@ class RulesBrain:
     def _professions(self, p: _Parse, ctx: Context) -> None:
         for k, s in enumerate(p.spans):
             if s.kind == "business_word":
-                if self._mentions_in(p, s.sentence):
+                asked_job = ctx.asked is not None and ctx.asked.field == "profession"
+                if asked_job or self._mentions_in(p, s.sentence):
                     s.kind, s.value = "profession", "business_owner"
                 else:
                     s.kind, s.value = "purpose", "business"
@@ -454,6 +505,9 @@ class RulesBrain:
         trip = {"country": ctx.form.country, "purpose": ctx.form.purpose}
         found: dict[str, str | None] = {"country": None, "purpose": None}
         for k, s in enumerate(p.spans):
+            if s.kind == "other_country" and not self._negated(p, k):
+                p.other_country = p.other_country or s.value
+                continue
             if s.kind not in ("country", "purpose") or self._negated(p, k):
                 continue
             kind = s.kind
@@ -476,11 +530,18 @@ class RulesBrain:
                     for i in m.slots:
                         setattr(p.slots[i], kind, s.value)
             elif found[kind] is not None and trip[kind] is None:
-                p.ambiguous += 1  # two different countries for the whole trip
+                if kind == "purpose":  # "tourism and a conference": ask which is the main one
+                    for v in (found[kind], s.value):
+                        if v is not None and v not in p.purpose_choices:
+                            p.purpose_choices.append(v)
+                else:
+                    p.ambiguous += 1  # two different countries for the whole trip
             else:
                 found[kind] = s.value
                 p.conflict = True
         p.country, p.purpose = found["country"], found["purpose"]
+        if len(p.purpose_choices) > 1:
+            p.purpose = None
 
     def _removals(self, p: _Parse) -> None:
         for k, s in enumerate(p.spans):
@@ -498,8 +559,8 @@ class RulesBrain:
         kinds = {s.kind for s in p.spans}
         if "restart" in kinds:
             return Extraction(intent="restart")
-        if "off_topic" in kinds:
-            return Extraction(on_topic=False)
+        if "off_topic" in kinds and not (p.country or p.purpose or p.other_country):
+            return Extraction(on_topic=False)  # real trip details outweigh a stray cue word
 
         patches = tuple(
             TravellerPatch(
@@ -515,12 +576,21 @@ class RulesBrain:
             if not sl.host
         )
         bare_me = patches == (TravellerPatch(relation="self"),)
-        if bare_me and not (p.country or p.purpose or p.count) and p.unexplained:
+        asking = bool(kinds & {"help", "office_question"})
+        if (
+            bare_me
+            and not (p.country or p.purpose or p.count or p.others_coming)
+            and (p.unexplained or asking)
+        ):
             patches = ()  # "write me a poem": 'me' is not a traveller here
         if p.adults is not None:
             kids = sum(1 for sl in p.slots if sl.relation in self.lex.ask_age_for and not sl.host)
             p.count = p.adults + kids
-        details = bool(p.country or p.purpose or p.count or patches)
+        asked_who = ctx.asked is not None and ctx.asked.field == "travellers"
+        if "no_more" in kinds or (asked_who and kinds & {"deny"} and not p.slots):
+            # "that's all" / "no" to "who else?": everyone known so far is the whole group
+            p.count = len(ctx.form.travellers) + sum(1 for x in patches if x.ref is None) or None
+        details = bool(p.country or p.purpose or p.count or patches or p.purpose_choices)
         intent: Intent
         if details:
             corrective = p.conflict or kinds & {"correct_cue", "deny", "remove"}
@@ -532,8 +602,16 @@ class RulesBrain:
         else:
             intent = "give_details"
 
-        signal = kinds & {"confirm", "deny", "greeting"}
-        on_topic = details or bool(signal) or has_devanagari(message) or not p.spans
+        signal = kinds & {"confirm", "deny", "greeting", "help", "office_question", "no_more"}
+        words = [s for s in p.spans if s.kind not in ("sep", "comma")]
+        on_topic = (
+            details
+            or bool(signal)
+            or p.other_country is not None
+            or has_devanagari(message)
+            or not words  # "???": unsure, not off-topic
+            or p.unexplained < 2  # one odd word ("umm") is "didn't catch that"
+        )
         if len(patches) > MAX_TRAVELLERS:  # keep the first 8; the count tells the bot to say so
             p.count = max(p.count or 0, len(patches))
             patches = patches[:MAX_TRAVELLERS]
@@ -547,6 +625,11 @@ class RulesBrain:
             purpose=p.purpose,
             traveller_count=count,
             travellers=patches,
+            other_country=p.other_country,
+            others_coming=p.others_coming,
+            purpose_choices=tuple(p.purpose_choices[:3]),
+            asks_office="office_question" in kinds,
+            asks_help="help" in kinds,
         )
 
 

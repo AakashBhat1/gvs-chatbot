@@ -49,10 +49,27 @@ class Extraction(BaseModel):
     purpose: Id | None = None
     traveller_count: Count | None = None
     travellers: tuple[TravellerPatch, ...] = Field(default=(), max_length=MAX_TRAVELLERS)
+    # A country the site lists but the bot has no checklist for ("Sri Lanka").
+    other_country: Id | None = None
+    # "with my family": more people are coming who weren't named yet.
+    others_coming: StrictBool = False
+    # "tourism and a conference": the user must pick one main purpose.
+    purpose_choices: tuple[Id, ...] = Field(default=(), max_length=3)
+    # Asked about fees, timelines, appointments: only the office can answer.
+    asks_office: StrictBool = False
+    # Asked which countries are covered / what the bot can do.
+    asks_help: StrictBool = False
 
     @property
     def has_details(self) -> bool:
-        return bool(self.country or self.purpose or self.traveller_count or self.travellers)
+        return bool(
+            self.country
+            or self.purpose
+            or self.traveller_count
+            or self.travellers
+            or self.others_coming
+            or self.purpose_choices
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,4 +118,9 @@ def sanitize(ex: Extraction, tree: LoadedTree, n_travellers: int) -> Extraction:
         purpose=keep(ex.purpose, d.purposes),
         traveller_count=ex.traveller_count,
         travellers=tuple(patches),
+        other_country=keep(ex.other_country, d.other_countries),
+        others_coming=ex.others_coming,
+        purpose_choices=tuple(p for p in dict.fromkeys(ex.purpose_choices) if p in d.purposes),
+        asks_office=ex.asks_office,
+        asks_help=ex.asks_help,
     )

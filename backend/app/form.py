@@ -37,6 +37,8 @@ class TripForm(BaseModel):
     travellers: tuple[Traveller, ...] = Field(default=(), max_length=MAX_TRAVELLERS)
     # "family of four" before all four are named; never below len(travellers).
     expected_count: Annotated[StrictInt, Field(ge=1, le=MAX_TRAVELLERS)] | None = None
+    # "with my family" before anyone else was named; cleared once someone is added.
+    others_pending: bool = False
 
     def country_of(self, t: Traveller) -> str | None:
         return t.country or self.country

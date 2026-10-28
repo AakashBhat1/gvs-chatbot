@@ -56,11 +56,19 @@ class Meta(_Strict):
     schema_version: Literal[1]
     status: Literal["placeholder", "draft", "reviewed"]
     note: str = Field(default="", max_length=500)
+    # Base URL for links in replies; country pages are <site_url>/visa/<id>.
+    site_url: Annotated[str, StringConstraints(pattern=r"^https://[a-z0-9.-]+$")] | None = None
 
 
 class Country(_Strict):
     name: Label
     last_reviewed: date | None = None
+
+
+class OtherCountry(_Strict):
+    """A country the website covers but the bot has no checklist for yet."""
+
+    name: Label
 
 
 class Labelled(_Strict):
@@ -116,6 +124,7 @@ def parse_rule_key(raw: str) -> RuleKey:
 class VisaTree(_Strict):
     meta: Meta
     countries: dict[Id, Country] = Field(min_length=1)
+    other_countries: dict[Id, OtherCountry] = Field(default_factory=dict)
     purposes: dict[Id, Labelled] = Field(min_length=1)
     professions: dict[Id, Labelled] = Field(min_length=1)
     relations: dict[Id, Labelled] = Field(min_length=1)
@@ -126,7 +135,11 @@ class VisaTree(_Strict):
 
     @model_validator(mode="after")
     def _check_references(self) -> VisaTree:
-        errors: list[str] = []
+        errors: list[str] = [
+            f"other_countries.{c}: already a supported country"
+            for c in self.other_countries
+            if c in self.countries
+        ]
         errors += self._check_groups()
         errors += self._check_age_bands()
         errors += self._check_rules()

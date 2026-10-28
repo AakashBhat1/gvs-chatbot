@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import tomllib
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Final
 
@@ -14,7 +14,7 @@ from app.tree import LoadedTree
 MAX_LEXICON_BYTES: Final = 262_144
 MAX_PHRASE_TOKENS: Final = 5
 
-VALUE_SECTIONS: Final = ("countries", "purposes", "professions", "relations")
+VALUE_SECTIONS: Final = ("countries", "other_countries", "purposes", "professions", "relations")
 MARKERS: Final = frozenset(
     {
         "we",
@@ -39,11 +39,16 @@ MARKERS: Final = frozenset(
         "conj",
         "weak_number",
         "off_topic",
+        "help",
+        "office_question",
+        "with_others",
+        "no_more",
     }
 )
 # Section name -> the kind of span it produces.
 _KIND: Final = {
     "countries": "country",
+    "other_countries": "other_country",
     "purposes": "purpose",
     "professions": "profession",
     "relations": "relation",
@@ -54,6 +59,29 @@ class LexiconError(ValueError):
     pass
 
 
+VALUE_KINDS: Final = frozenset(_KIND.values())
+FUZZY_MIN_LEN: Final = 4  # shortest word we try to correct
+FUZZY_MIN_ALIAS: Final = 5  # shortest alias a typo may resolve to
+
+
+def edit_distance(a: str, b: str, limit: int) -> int:
+    """Optimal-string-alignment distance (typos incl. swapped letters), capped at limit + 1."""
+    if abs(len(a) - len(b)) > limit:
+        return limit + 1
+    prev2: list[int] = []
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i] + [0] * len(b)
+        for j, cb in enumerate(b, 1):
+            cur[j] = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb))
+            if i > 1 and j > 1 and ca == b[j - 2] and a[i - 2] == cb:
+                cur[j] = min(cur[j], prev2[j - 2] + 1)
+        if min(cur) > limit:
+            return limit + 1
+        prev2, prev = prev, cur
+    return prev[-1]
+
+
 @dataclass(frozen=True, slots=True)
 class Lexicon:
     phrases: Mapping[tuple[str, ...], tuple[str, str]]  # tokens -> (kind, value)
@@ -62,15 +90,66 @@ class Lexicon:
     ask_age_for: frozenset[str]
     plural_relations: frozenset[str]
     max_phrase: int
+    # "newzealand" -> new zealand; built from multi-word value aliases.
+    compact: Mapping[str, tuple[str, str]] = field(default_factory=dict)
+    # first letter -> single-word value aliases, for typo matching.
+    fuzzy_pool: Mapping[str, tuple[tuple[str, tuple[str, str]], ...]] = field(default_factory=dict)
 
     def lookup(self, tokens: tuple[str, ...]) -> tuple[str, str] | None:
         return self.phrases.get(tokens)
+
+    def guess(self, token: str) -> tuple[str, str] | None:
+        """Best value for an unknown word: joined phrase, or one typo away (two if long).
+
+        Requires the same first letter and a unique best match, so short or
+        ambiguous words are never guessed.
+        """
+        if hit := self.compact.get(token):
+            return hit
+        if len(token) < FUZZY_MIN_LEN or not token.isalpha():
+            return None
+        limit = 1 if len(token) <= 7 else 2
+        best: dict[tuple[str, str], int] = {}
+        for alias, hit in self.fuzzy_pool.get(token[0], ()):
+            d = edit_distance(token, alias, limit)
+            if d <= limit and d < best.get(hit, limit + 1):
+                best[hit] = d
+        if not best:
+            return None
+        top = min(best.values())
+        winners = [hit for hit, d in best.items() if d == top]
+        return winners[0] if len(winners) == 1 else None
 
 
 def _str_list(value: object, where: str) -> list[str]:
     if not isinstance(value, list) or not all(isinstance(v, str) and v.strip() for v in value):
         raise LexiconError(f"{where}: expected a list of non-empty strings")
     return [v.strip().lower() for v in value]
+
+
+def _typo_index(
+    phrases: Mapping[tuple[str, ...], tuple[str, str]],
+) -> tuple[dict[str, tuple[str, str]], dict[str, tuple[tuple[str, tuple[str, str]], ...]]]:
+    """Joined multi-word aliases ("newzealand") and per-letter pools for typo matching."""
+    compact: dict[str, tuple[str, str]] = {}
+    clashes: set[str] = set()
+    pool: dict[str, list[tuple[str, tuple[str, str]]]] = {}
+    for tokens, hit in phrases.items():
+        if hit[0] not in VALUE_KINDS and hit[0] != "business_word":
+            continue
+        if len(tokens) > 1:
+            joined = "".join(tokens)
+            if (joined,) in phrases or (joined in compact and compact[joined] != hit):
+                clashes.add(joined)
+            compact[joined] = hit
+        elif tokens[0].isalpha() and len(tokens[0]) >= (
+            FUZZY_MIN_ALIAS + 1 if hit[0] == "other_country" else FUZZY_MIN_ALIAS
+        ):
+            # Short aliases are never typo targets: "male" must not become Mali.
+            pool.setdefault(tokens[0][0], []).append((tokens[0], hit))
+    for joined in clashes:
+        compact.pop(joined, None)
+    return compact, {k: tuple(v) for k, v in pool.items()}
 
 
 def parse_lexicon(raw: bytes, tree: LoadedTree) -> Lexicon:
@@ -91,6 +170,7 @@ def parse_lexicon(raw: bytes, tree: LoadedTree) -> Lexicon:
         "purposes": data.purposes,
         "professions": data.professions,
         "relations": data.relations,
+        "other_countries": data.other_countries,
     }
     errors: list[str] = []
     phrases: dict[tuple[str, ...], tuple[str, str]] = {}
@@ -155,6 +235,9 @@ def parse_lexicon(raw: bytes, tree: LoadedTree) -> Lexicon:
 
     if errors:
         raise LexiconError("; ".join(errors))
+
+    compact, pool = _typo_index(phrases)
+
     return Lexicon(
         phrases=phrases,
         numbers=numbers,
@@ -162,6 +245,8 @@ def parse_lexicon(raw: bytes, tree: LoadedTree) -> Lexicon:
         ask_age_for=ask_age_for,
         plural_relations=plural_relations,
         max_phrase=max(len(t) for t in phrases),
+        compact=compact,
+        fuzzy_pool=pool,
     )
 
 

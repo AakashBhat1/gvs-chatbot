@@ -2,135 +2,870 @@
   "meta": {
     "schema_version": 1,
     "status": "placeholder",
-    "note": "PLACEHOLDER document lists for development only. These are NOT real visa requirements. Replace and review every country before go-live."
+    "note": "PLACEHOLDER document lists for development only. These are NOT real visa requirements. Replace and review every country before go-live.",
+    "site_url": "https://www.gurgaonvisaservices.com"
   },
   "countries": {
-    "us": { "name": "United States of America", "last_reviewed": null },
-    "uk": { "name": "United Kingdom", "last_reviewed": null },
-    "canada": { "name": "Canada", "last_reviewed": null },
-    "australia": { "name": "Australia", "last_reviewed": null },
-    "new-zealand": { "name": "New Zealand", "last_reviewed": null },
-    "schengen": { "name": "Schengen Area (Europe)", "last_reviewed": null },
-    "france": { "name": "France", "last_reviewed": null },
-    "germany": { "name": "Germany", "last_reviewed": null },
-    "italy": { "name": "Italy", "last_reviewed": null },
-    "spain": { "name": "Spain", "last_reviewed": null },
-    "switzerland": { "name": "Switzerland", "last_reviewed": null },
-    "japan": { "name": "Japan", "last_reviewed": null },
-    "singapore": { "name": "Singapore", "last_reviewed": null },
-    "thailand": { "name": "Thailand", "last_reviewed": null },
-    "uae-dubai": { "name": "United Arab Emirates (Dubai)", "last_reviewed": null }
+    "us": {
+      "name": "United States of America",
+      "last_reviewed": null
+    },
+    "uk": {
+      "name": "United Kingdom",
+      "last_reviewed": null
+    },
+    "canada": {
+      "name": "Canada",
+      "last_reviewed": null
+    },
+    "australia": {
+      "name": "Australia",
+      "last_reviewed": null
+    },
+    "new-zealand": {
+      "name": "New Zealand",
+      "last_reviewed": null
+    },
+    "schengen": {
+      "name": "Schengen Area (Europe)",
+      "last_reviewed": null
+    },
+    "france": {
+      "name": "France",
+      "last_reviewed": null
+    },
+    "germany": {
+      "name": "Germany",
+      "last_reviewed": null
+    },
+    "italy": {
+      "name": "Italy",
+      "last_reviewed": null
+    },
+    "spain": {
+      "name": "Spain",
+      "last_reviewed": null
+    },
+    "switzerland": {
+      "name": "Switzerland",
+      "last_reviewed": null
+    },
+    "japan": {
+      "name": "Japan",
+      "last_reviewed": null
+    },
+    "singapore": {
+      "name": "Singapore",
+      "last_reviewed": null
+    },
+    "thailand": {
+      "name": "Thailand",
+      "last_reviewed": null
+    },
+    "uae-dubai": {
+      "name": "United Arab Emirates (Dubai)",
+      "last_reviewed": null
+    }
+  },
+  "other_countries": {
+    "afghanistan": {
+      "name": "Afghanistan"
+    },
+    "albania": {
+      "name": "Albania"
+    },
+    "algeria": {
+      "name": "Algeria"
+    },
+    "andorra": {
+      "name": "Andorra"
+    },
+    "angola": {
+      "name": "Angola"
+    },
+    "antigua-and-barbuda": {
+      "name": "Antigua and Barbuda"
+    },
+    "argentina": {
+      "name": "Argentina"
+    },
+    "armenia": {
+      "name": "Armenia"
+    },
+    "austria": {
+      "name": "Austria"
+    },
+    "azerbaijan": {
+      "name": "Azerbaijan"
+    },
+    "bahamas": {
+      "name": "Bahamas"
+    },
+    "bahrain": {
+      "name": "Bahrain"
+    },
+    "bangladesh": {
+      "name": "Bangladesh"
+    },
+    "barbados": {
+      "name": "Barbados"
+    },
+    "belarus": {
+      "name": "Belarus"
+    },
+    "belgium": {
+      "name": "Belgium"
+    },
+    "belize": {
+      "name": "Belize"
+    },
+    "benin": {
+      "name": "Benin"
+    },
+    "bhutan": {
+      "name": "Bhutan"
+    },
+    "bolivia": {
+      "name": "Bolivia"
+    },
+    "bosnia": {
+      "name": "Bosnia and Herzegovina"
+    },
+    "botswana": {
+      "name": "Botswana"
+    },
+    "brazil": {
+      "name": "Brazil"
+    },
+    "brunei-darusallam": {
+      "name": "Brunei"
+    },
+    "bulgaria": {
+      "name": "Bulgaria"
+    },
+    "burkina-faso": {
+      "name": "Burkina Faso"
+    },
+    "burma-myanmar": {
+      "name": "Myanmar (Burma)"
+    },
+    "burundi": {
+      "name": "Burundi"
+    },
+    "cambodia": {
+      "name": "Cambodia"
+    },
+    "capeverde": {
+      "name": "Cape Verde"
+    },
+    "chad": {
+      "name": "Chad"
+    },
+    "chile": {
+      "name": "Chile"
+    },
+    "china": {
+      "name": "China"
+    },
+    "colombia": {
+      "name": "Colombia"
+    },
+    "comoros": {
+      "name": "Comoros"
+    },
+    "congo": {
+      "name": "Congo"
+    },
+    "cote-divoire": {
+      "name": "Côte d'Ivoire"
+    },
+    "croatia": {
+      "name": "Croatia"
+    },
+    "cuba": {
+      "name": "Cuba"
+    },
+    "cyprus": {
+      "name": "Cyprus"
+    },
+    "czech-republic": {
+      "name": "Czech Republic"
+    },
+    "denmark": {
+      "name": "Denmark"
+    },
+    "djibouti": {
+      "name": "Djibouti"
+    },
+    "dominica": {
+      "name": "Dominica"
+    },
+    "dominican-republic": {
+      "name": "Dominican Republic"
+    },
+    "ecuador": {
+      "name": "Ecuador"
+    },
+    "egypt": {
+      "name": "Egypt"
+    },
+    "el-salvador": {
+      "name": "El Salvador"
+    },
+    "eritrea": {
+      "name": "Eritrea"
+    },
+    "estonia": {
+      "name": "Estonia"
+    },
+    "ethiopia": {
+      "name": "Ethiopia"
+    },
+    "fiji": {
+      "name": "Fiji"
+    },
+    "finland": {
+      "name": "Finland"
+    },
+    "gabon": {
+      "name": "Gabon"
+    },
+    "gambia": {
+      "name": "Gambia"
+    },
+    "georgia": {
+      "name": "Georgia"
+    },
+    "ghana": {
+      "name": "Ghana"
+    },
+    "greece": {
+      "name": "Greece"
+    },
+    "grenada": {
+      "name": "Grenada"
+    },
+    "guatemala": {
+      "name": "Guatemala"
+    },
+    "guyana": {
+      "name": "Guyana"
+    },
+    "haiti": {
+      "name": "Haiti"
+    },
+    "honduras": {
+      "name": "Honduras"
+    },
+    "hong-kong": {
+      "name": "Hong Kong"
+    },
+    "hungary": {
+      "name": "Hungary"
+    },
+    "iceland": {
+      "name": "Iceland"
+    },
+    "indonesia": {
+      "name": "Indonesia"
+    },
+    "iran": {
+      "name": "Iran"
+    },
+    "iraq": {
+      "name": "Iraq"
+    },
+    "israel": {
+      "name": "Israel"
+    },
+    "jamaica": {
+      "name": "Jamaica"
+    },
+    "jordan": {
+      "name": "Jordan"
+    },
+    "kazakhstan": {
+      "name": "Kazakhstan"
+    },
+    "kenya": {
+      "name": "Kenya"
+    },
+    "korea": {
+      "name": "Korea"
+    },
+    "kuwait": {
+      "name": "Kuwait"
+    },
+    "kyrgyzstan": {
+      "name": "Kyrgyzstan"
+    },
+    "laos": {
+      "name": "Laos"
+    },
+    "lebanon": {
+      "name": "Lebanon"
+    },
+    "liberia": {
+      "name": "Liberia"
+    },
+    "liechtenstein": {
+      "name": "Liechtenstein"
+    },
+    "lithuania": {
+      "name": "Lithuania"
+    },
+    "luxembourg": {
+      "name": "Luxembourg"
+    },
+    "macedonia": {
+      "name": "Macedonia"
+    },
+    "malawi": {
+      "name": "Malawi"
+    },
+    "malaysia": {
+      "name": "Malaysia"
+    },
+    "maldives": {
+      "name": "Maldives"
+    },
+    "mali": {
+      "name": "Mali"
+    },
+    "malta": {
+      "name": "Malta"
+    },
+    "mauritius": {
+      "name": "Mauritius"
+    },
+    "mexico": {
+      "name": "Mexico"
+    },
+    "moldova": {
+      "name": "Moldova"
+    },
+    "mongolia": {
+      "name": "Mongolia"
+    },
+    "monteserrat": {
+      "name": "Montserrat"
+    },
+    "morocco": {
+      "name": "Morocco"
+    },
+    "mozambique": {
+      "name": "Mozambique"
+    },
+    "namibia": {
+      "name": "Namibia"
+    },
+    "nepal": {
+      "name": "Nepal"
+    },
+    "netherlands": {
+      "name": "Netherlands"
+    },
+    "nicaragua": {
+      "name": "Nicaragua"
+    },
+    "nigeria": {
+      "name": "Nigeria"
+    },
+    "north-korea": {
+      "name": "North Korea"
+    },
+    "norway": {
+      "name": "Norway"
+    },
+    "oman": {
+      "name": "Oman"
+    },
+    "pakistan": {
+      "name": "Pakistan"
+    },
+    "palau": {
+      "name": "Palau"
+    },
+    "panama": {
+      "name": "Panama"
+    },
+    "papua-new-guinea": {
+      "name": "Papua New Guinea"
+    },
+    "paraguay": {
+      "name": "Paraguay"
+    },
+    "peru": {
+      "name": "Peru"
+    },
+    "philippines": {
+      "name": "Philippines"
+    },
+    "poland": {
+      "name": "Poland"
+    },
+    "portugal": {
+      "name": "Portugal"
+    },
+    "qatar": {
+      "name": "Qatar"
+    },
+    "romania": {
+      "name": "Romania"
+    },
+    "russia": {
+      "name": "Russia"
+    },
+    "rwanda": {
+      "name": "Rwanda"
+    },
+    "saint-kitts-and-nevis": {
+      "name": "Saint Kitts and Nevis"
+    },
+    "saint-lucia": {
+      "name": "Saint Lucia"
+    },
+    "samoa": {
+      "name": "Samoa"
+    },
+    "saudiarabia": {
+      "name": "Saudi Arabia"
+    },
+    "senegal": {
+      "name": "Senegal"
+    },
+    "serbia": {
+      "name": "Serbia"
+    },
+    "slovakia": {
+      "name": "Slovakia"
+    },
+    "slovenia": {
+      "name": "Slovenia"
+    },
+    "south-africa": {
+      "name": "South Africa"
+    },
+    "south-korea": {
+      "name": "South Korea"
+    },
+    "sri-lanka": {
+      "name": "Sri Lanka"
+    },
+    "st-vincent-and-grenadines": {
+      "name": "St. Vincent and the Grenadines"
+    },
+    "sudan": {
+      "name": "Sudan"
+    },
+    "suriname": {
+      "name": "Suriname"
+    },
+    "sweden": {
+      "name": "Sweden"
+    },
+    "syria": {
+      "name": "Syria"
+    },
+    "taiwan": {
+      "name": "Taiwan"
+    },
+    "tajikistan": {
+      "name": "Tajikistan"
+    },
+    "tanzania": {
+      "name": "Tanzania"
+    },
+    "togo": {
+      "name": "Togo"
+    },
+    "trinidad-and-tobago": {
+      "name": "Trinidad and Tobago"
+    },
+    "tunisia": {
+      "name": "Tunisia"
+    },
+    "turkey": {
+      "name": "Turkey"
+    },
+    "turkmenistan": {
+      "name": "Turkmenistan"
+    },
+    "tuvalu": {
+      "name": "Tuvalu"
+    },
+    "uganda": {
+      "name": "Uganda"
+    },
+    "ukraine": {
+      "name": "Ukraine"
+    },
+    "uruguay": {
+      "name": "Uruguay"
+    },
+    "uzbekistan": {
+      "name": "Uzbekistan"
+    },
+    "vanuatu": {
+      "name": "Vanuatu"
+    },
+    "vatican-city": {
+      "name": "Vatican City"
+    },
+    "venezuela": {
+      "name": "Venezuela"
+    },
+    "vietnam": {
+      "name": "Vietnam"
+    },
+    "yemen": {
+      "name": "Yemen"
+    },
+    "zambia": {
+      "name": "Zambia"
+    },
+    "zimbabwe": {
+      "name": "Zimbabwe"
+    }
   },
   "purposes": {
-    "tourism": { "label": "Tourism" },
-    "family_visit": { "label": "Visiting family or friends" },
-    "business": { "label": "Conference or business meeting" }
+    "tourism": {
+      "label": "Tourism"
+    },
+    "family_visit": {
+      "label": "Visiting family or friends"
+    },
+    "business": {
+      "label": "Conference or business meeting"
+    }
   },
   "professions": {
-    "employed": { "label": "Salaried (private sector)" },
-    "government_employee": { "label": "Government or PSU employee" },
-    "defence_personnel": { "label": "Defence personnel" },
-    "self_employed_professional": { "label": "Self-employed professional (doctor, lawyer, CA)" },
-    "business_owner": { "label": "Business owner or proprietor" },
-    "company_director": { "label": "Company director or partner" },
-    "freelancer": { "label": "Freelancer or consultant" },
-    "farmer": { "label": "Farmer or agriculturist" },
-    "landlord_investor": { "label": "Income from rent or investments" },
-    "seafarer": { "label": "Seafarer or merchant navy" },
-    "retired": { "label": "Retired or pensioner" },
-    "homemaker": { "label": "Homemaker" },
-    "unemployed": { "label": "Not working" },
-    "university_student": { "label": "College or university student" },
-    "school_student": { "label": "School student" },
-    "infant": { "label": "Infant" },
-    "other": { "label": "Other" }
+    "employed": {
+      "label": "Salaried (private sector)"
+    },
+    "government_employee": {
+      "label": "Government or PSU employee"
+    },
+    "defence_personnel": {
+      "label": "Defence personnel"
+    },
+    "self_employed_professional": {
+      "label": "Self-employed professional (doctor, lawyer, CA)"
+    },
+    "business_owner": {
+      "label": "Business owner or proprietor"
+    },
+    "company_director": {
+      "label": "Company director or partner"
+    },
+    "freelancer": {
+      "label": "Freelancer or consultant"
+    },
+    "farmer": {
+      "label": "Farmer or agriculturist"
+    },
+    "landlord_investor": {
+      "label": "Income from rent or investments"
+    },
+    "seafarer": {
+      "label": "Seafarer or merchant navy"
+    },
+    "retired": {
+      "label": "Retired or pensioner"
+    },
+    "homemaker": {
+      "label": "Homemaker"
+    },
+    "unemployed": {
+      "label": "Not working"
+    },
+    "university_student": {
+      "label": "College or university student"
+    },
+    "school_student": {
+      "label": "School student"
+    },
+    "infant": {
+      "label": "Infant"
+    },
+    "other": {
+      "label": "Other"
+    }
   },
   "relations": {
-    "self": { "label": "You" },
-    "spouse": { "label": "Spouse" },
-    "son": { "label": "Son" },
-    "daughter": { "label": "Daughter" },
-    "child": { "label": "Child" },
-    "father": { "label": "Father" },
-    "mother": { "label": "Mother" },
-    "sibling": { "label": "Brother or sister" },
-    "grandparent": { "label": "Grandparent" },
-    "friend_colleague": { "label": "Friend or colleague" }
+    "self": {
+      "label": "You"
+    },
+    "spouse": {
+      "label": "Spouse"
+    },
+    "son": {
+      "label": "Son"
+    },
+    "daughter": {
+      "label": "Daughter"
+    },
+    "child": {
+      "label": "Child"
+    },
+    "father": {
+      "label": "Father"
+    },
+    "mother": {
+      "label": "Mother"
+    },
+    "sibling": {
+      "label": "Brother or sister"
+    },
+    "grandparent": {
+      "label": "Grandparent"
+    },
+    "friend_colleague": {
+      "label": "Friend or colleague"
+    }
   },
   "relation_groups": {
-    "children": ["son", "daughter", "child"],
-    "parent": ["father", "mother"]
+    "children": [
+      "son",
+      "daughter",
+      "child"
+    ],
+    "parent": [
+      "father",
+      "mother"
+    ]
   },
   "age_bands": {
     "*": [
-      { "max_age": 2, "profession": "infant" },
-      { "max_age": 17, "profession": "school_student" }
+      {
+        "max_age": 2,
+        "profession": "infant"
+      },
+      {
+        "max_age": 17,
+        "profession": "school_student"
+      }
     ]
   },
   "documents": {
-    "passport": { "label": "[PLACEHOLDER] Passport, valid 6+ months beyond travel" },
-    "photos": { "label": "[PLACEHOLDER] 2 recent passport-size photos" },
-    "application_form": { "label": "[PLACEHOLDER] Completed visa application form" },
-    "itinerary": { "label": "[PLACEHOLDER] Flight and hotel itinerary" },
-    "bank_statements": { "label": "[PLACEHOLDER] Last 6 months' bank statements" },
-    "itr": { "label": "[PLACEHOLDER] Income tax returns, last 3 years" },
-    "salary_slips": { "label": "[PLACEHOLDER] Last 3 months' salary slips" },
-    "employer_noc": { "label": "[PLACEHOLDER] Leave/NOC letter from employer" },
-    "govt_noc": { "label": "[PLACEHOLDER] NOC from department" },
-    "defence_noc": { "label": "[PLACEHOLDER] NOC from unit / competent authority" },
-    "practice_registration": { "label": "[PLACEHOLDER] Professional registration certificate" },
-    "gst_certificate": { "label": "[PLACEHOLDER] GST or business registration certificate" },
-    "company_bank_statements": { "label": "[PLACEHOLDER] Company bank statements, last 6 months" },
-    "board_resolution": { "label": "[PLACEHOLDER] Company letter or board resolution" },
-    "client_contracts": { "label": "[PLACEHOLDER] Recent client contracts or invoices" },
-    "land_records": { "label": "[PLACEHOLDER] Land ownership records" },
-    "investment_proof": { "label": "[PLACEHOLDER] Rent agreements or investment statements" },
-    "cdc": { "label": "[PLACEHOLDER] Continuous Discharge Certificate (CDC)" },
-    "pension_proof": { "label": "[PLACEHOLDER] Pension statement or retirement proof" },
-    "sponsor_letter": { "label": "[PLACEHOLDER] Sponsorship letter from the paying family member" },
-    "college_id": { "label": "[PLACEHOLDER] College ID and bonafide letter" },
-    "school_noc": { "label": "[PLACEHOLDER] School bonafide / NOC letter" },
-    "birth_certificate": { "label": "[PLACEHOLDER] Birth certificate" },
-    "parents_consent": { "label": "[PLACEHOLDER] Consent letter signed by both parents" },
-    "invitation_letter": { "label": "[PLACEHOLDER] Invitation letter from host" },
-    "host_id_proof": { "label": "[PLACEHOLDER] Host's passport / residence permit copy" },
-    "business_invitation": { "label": "[PLACEHOLDER] Business or conference invitation" },
-    "company_covering_letter": { "label": "[PLACEHOLDER] Covering letter from Indian company" },
-    "travel_insurance": { "label": "[PLACEHOLDER] Travel insurance, EUR 30,000 cover" },
-    "ds160_confirmation": { "label": "[PLACEHOLDER] DS-160 confirmation page" },
-    "family_covering_letter": { "label": "[PLACEHOLDER] Covering letter for the group, listing all travellers" },
-    "relationship_proof": { "label": "[PLACEHOLDER] Proof of relationship (marriage/birth certificates)" }
+    "passport": {
+      "label": "[PLACEHOLDER] Passport, valid 6+ months beyond travel"
+    },
+    "photos": {
+      "label": "[PLACEHOLDER] 2 recent passport-size photos"
+    },
+    "application_form": {
+      "label": "[PLACEHOLDER] Completed visa application form"
+    },
+    "itinerary": {
+      "label": "[PLACEHOLDER] Flight and hotel itinerary"
+    },
+    "bank_statements": {
+      "label": "[PLACEHOLDER] Last 6 months' bank statements"
+    },
+    "itr": {
+      "label": "[PLACEHOLDER] Income tax returns, last 3 years"
+    },
+    "salary_slips": {
+      "label": "[PLACEHOLDER] Last 3 months' salary slips"
+    },
+    "employer_noc": {
+      "label": "[PLACEHOLDER] Leave/NOC letter from employer"
+    },
+    "govt_noc": {
+      "label": "[PLACEHOLDER] NOC from department"
+    },
+    "defence_noc": {
+      "label": "[PLACEHOLDER] NOC from unit / competent authority"
+    },
+    "practice_registration": {
+      "label": "[PLACEHOLDER] Professional registration certificate"
+    },
+    "gst_certificate": {
+      "label": "[PLACEHOLDER] GST or business registration certificate"
+    },
+    "company_bank_statements": {
+      "label": "[PLACEHOLDER] Company bank statements, last 6 months"
+    },
+    "board_resolution": {
+      "label": "[PLACEHOLDER] Company letter or board resolution"
+    },
+    "client_contracts": {
+      "label": "[PLACEHOLDER] Recent client contracts or invoices"
+    },
+    "land_records": {
+      "label": "[PLACEHOLDER] Land ownership records"
+    },
+    "investment_proof": {
+      "label": "[PLACEHOLDER] Rent agreements or investment statements"
+    },
+    "cdc": {
+      "label": "[PLACEHOLDER] Continuous Discharge Certificate (CDC)"
+    },
+    "pension_proof": {
+      "label": "[PLACEHOLDER] Pension statement or retirement proof"
+    },
+    "sponsor_letter": {
+      "label": "[PLACEHOLDER] Sponsorship letter from the paying family member"
+    },
+    "college_id": {
+      "label": "[PLACEHOLDER] College ID and bonafide letter"
+    },
+    "school_noc": {
+      "label": "[PLACEHOLDER] School bonafide / NOC letter"
+    },
+    "birth_certificate": {
+      "label": "[PLACEHOLDER] Birth certificate"
+    },
+    "parents_consent": {
+      "label": "[PLACEHOLDER] Consent letter signed by both parents"
+    },
+    "invitation_letter": {
+      "label": "[PLACEHOLDER] Invitation letter from host"
+    },
+    "host_id_proof": {
+      "label": "[PLACEHOLDER] Host's passport / residence permit copy"
+    },
+    "business_invitation": {
+      "label": "[PLACEHOLDER] Business or conference invitation"
+    },
+    "company_covering_letter": {
+      "label": "[PLACEHOLDER] Covering letter from Indian company"
+    },
+    "travel_insurance": {
+      "label": "[PLACEHOLDER] Travel insurance, EUR 30,000 cover"
+    },
+    "ds160_confirmation": {
+      "label": "[PLACEHOLDER] DS-160 confirmation page"
+    },
+    "family_covering_letter": {
+      "label": "[PLACEHOLDER] Covering letter for the group, listing all travellers"
+    },
+    "relationship_proof": {
+      "label": "[PLACEHOLDER] Proof of relationship (marriage/birth certificates)"
+    }
   },
   "rules": {
-    "*": ["passport", "photos", "application_form", "itinerary"],
-    "*/*/employed": ["salary_slips", "employer_noc", "bank_statements", "itr"],
-    "*/*/government_employee": ["govt_noc", "salary_slips", "bank_statements", "itr"],
-    "*/*/defence_personnel": ["defence_noc", "salary_slips", "bank_statements"],
-    "*/*/self_employed_professional": ["practice_registration", "bank_statements", "itr"],
-    "*/*/business_owner": ["gst_certificate", "company_bank_statements", "bank_statements", "itr"],
-    "*/*/company_director": ["board_resolution", "company_bank_statements", "bank_statements", "itr"],
-    "*/*/freelancer": ["client_contracts", "bank_statements", "itr"],
-    "*/*/farmer": ["land_records", "bank_statements"],
-    "*/*/landlord_investor": ["investment_proof", "bank_statements", "itr"],
-    "*/*/seafarer": ["cdc", "bank_statements"],
-    "*/*/retired": ["pension_proof", "bank_statements"],
-    "*/*/homemaker": ["sponsor_letter"],
-    "*/*/unemployed": ["sponsor_letter"],
-    "*/*/university_student": ["college_id", "sponsor_letter"],
-    "*/*/school_student": ["school_noc", "sponsor_letter"],
-    "*/*/infant": ["sponsor_letter"],
-    "*/*/other": ["bank_statements"],
-    "*/family_visit": ["invitation_letter", "host_id_proof"],
-    "*/business": ["business_invitation", "company_covering_letter"],
-    "us": ["ds160_confirmation"],
-    "schengen": ["travel_insurance"],
-    "france": ["travel_insurance"],
-    "germany": ["travel_insurance"],
-    "italy": ["travel_insurance"],
-    "spain": ["travel_insurance"],
-    "switzerland": ["travel_insurance"],
-    "@children": ["birth_certificate", "parents_consent"],
-    "@spouse": ["relationship_proof"],
-    "@family": ["family_covering_letter"]
+    "*": [
+      "passport",
+      "photos",
+      "application_form",
+      "itinerary"
+    ],
+    "*/*/employed": [
+      "salary_slips",
+      "employer_noc",
+      "bank_statements",
+      "itr"
+    ],
+    "*/*/government_employee": [
+      "govt_noc",
+      "salary_slips",
+      "bank_statements",
+      "itr"
+    ],
+    "*/*/defence_personnel": [
+      "defence_noc",
+      "salary_slips",
+      "bank_statements"
+    ],
+    "*/*/self_employed_professional": [
+      "practice_registration",
+      "bank_statements",
+      "itr"
+    ],
+    "*/*/business_owner": [
+      "gst_certificate",
+      "company_bank_statements",
+      "bank_statements",
+      "itr"
+    ],
+    "*/*/company_director": [
+      "board_resolution",
+      "company_bank_statements",
+      "bank_statements",
+      "itr"
+    ],
+    "*/*/freelancer": [
+      "client_contracts",
+      "bank_statements",
+      "itr"
+    ],
+    "*/*/farmer": [
+      "land_records",
+      "bank_statements"
+    ],
+    "*/*/landlord_investor": [
+      "investment_proof",
+      "bank_statements",
+      "itr"
+    ],
+    "*/*/seafarer": [
+      "cdc",
+      "bank_statements"
+    ],
+    "*/*/retired": [
+      "pension_proof",
+      "bank_statements"
+    ],
+    "*/*/homemaker": [
+      "sponsor_letter"
+    ],
+    "*/*/unemployed": [
+      "sponsor_letter"
+    ],
+    "*/*/university_student": [
+      "college_id",
+      "sponsor_letter"
+    ],
+    "*/*/school_student": [
+      "school_noc",
+      "sponsor_letter"
+    ],
+    "*/*/infant": [
+      "sponsor_letter"
+    ],
+    "*/*/other": [
+      "bank_statements"
+    ],
+    "*/family_visit": [
+      "invitation_letter",
+      "host_id_proof"
+    ],
+    "*/business": [
+      "business_invitation",
+      "company_covering_letter"
+    ],
+    "us": [
+      "ds160_confirmation"
+    ],
+    "schengen": [
+      "travel_insurance"
+    ],
+    "france": [
+      "travel_insurance"
+    ],
+    "germany": [
+      "travel_insurance"
+    ],
+    "italy": [
+      "travel_insurance"
+    ],
+    "spain": [
+      "travel_insurance"
+    ],
+    "switzerland": [
+      "travel_insurance"
+    ],
+    "@children": [
+      "birth_certificate",
+      "parents_consent"
+    ],
+    "@spouse": [
+      "relationship_proof"
+    ],
+    "@family": [
+      "family_covering_letter"
+    ]
   }
 }

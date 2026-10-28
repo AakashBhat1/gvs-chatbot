@@ -75,11 +75,17 @@ class Outcome:
             return self.intent == exp.intent
         if field == "on_topic":
             return self.on_topic == exp.on_topic
+        if field == "travellers":  # the same people in any order is the same checklist
+            return _people(self.form) == _people(exp.form)
         return bool(getattr(self.form, field) == getattr(exp.form, field))
 
     @property
     def exact(self) -> bool:
         return all(self.matches(f) for f in FIELDS)
+
+
+def _people(form: TripForm) -> list[str]:
+    return sorted(t.model_dump_json() for t in form.travellers)
 
 
 def load_cases(path: Path) -> list[Case]:
