@@ -124,7 +124,7 @@ def test_check_real_tree_passes_dev_mode(capsys: pytest.CaptureFixture[str]) -> 
     assert check_tree.main([], today=TODAY) == 0
     captured = capsys.readouterr()
     assert captured.out.startswith("OK")
-    assert "15 countries, 3 purposes, 17 professions, 9 relations" in captured.out
+    assert "15 countries, 3 purposes, 17 professions, 10 relations" in captured.out
     assert "never been reviewed" in captured.err  # warned, not failed
 
 
@@ -181,5 +181,16 @@ def test_check_invalid_tree_fails(
 def test_default_tree_path_env_override(
     monkeypatch: pytest.MonkeyPatch, mini_dict: dict[str, Any], write_tree: WriteTree
 ) -> None:
-    monkeypatch.setenv("GVS_TREE_PATH", str(write_tree(mini_dict)))
+    tree_path = write_tree(mini_dict)
+    lexicon = tree_path.with_name("lexicon.toml")
+    lexicon.write_text('[countries]\njp = ["japan"]\n', encoding="utf-8")
+    monkeypatch.setenv("GVS_TREE_PATH", str(tree_path))
+    monkeypatch.setenv("GVS_LEXICON_PATH", str(lexicon))
     assert check_tree.main(["--release"], today=TODAY) == 0
+
+
+def test_check_fails_on_bad_lexicon(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    bad = tmp_path / "lexicon.toml"
+    bad.write_text('[countries]\natlantis = ["atlantis"]\n', encoding="utf-8")
+    assert check_tree.main(["--lexicon", str(bad)], today=TODAY) == 1
+    assert "lexicon: countries.atlantis: not an id" in capsys.readouterr().err

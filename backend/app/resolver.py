@@ -112,7 +112,7 @@ def missing_fields(form: TripForm, tree: LoadedTree) -> list[Missing]:
         missing.append(Missing("country"))
     if form.purpose is None:
         missing.append(Missing("purpose"))
-    if not form.travellers:
+    if not form.travellers or len(form.travellers) < (form.expected_count or 0):
         missing.append(Missing("travellers"))
     missing += [
         Missing("profession", i)

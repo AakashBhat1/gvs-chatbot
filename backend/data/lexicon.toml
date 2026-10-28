@@ -1,0 +1,190 @@
+# Words the rules brain understands. Lowercase; multi-word phrases allowed.
+# Longest phrase wins, so "merchant navy" beats "navy" and "for business" beats "business".
+# Every key must exist in visa-tree.json and an alias may appear only once in the
+# whole file; the loader rejects the file otherwise (see app/brains/lexicon.py).
+
+[settings]
+# For these relations the bot asks "How old is ...?" instead of "What does ... do?".
+ask_age_for = ["son", "daughter", "child"]
+# Relation aliases that mean more than one person ("2 kids", "kids aged 3 and 5").
+plural_relations = ["sons", "daughters", "kids", "children", "bachche", "bacche", "bachhe", "betiyan", "siblings", "grandparents", "friends", "colleagues"]
+
+[countries]
+us = ["usa", "america", "united states", "united states of america", "amrika", "amreeka", "new york", "california", "us visa"]
+uk = ["uk", "united kingdom", "england", "britain", "great britain", "london", "scotland", "manchester", "birmingham"]
+canada = ["canada", "toronto", "vancouver", "montreal"]
+australia = ["australia", "aus", "sydney", "melbourne", "perth", "brisbane"]
+new-zealand = ["new zealand", "nz", "auckland", "wellington"]
+schengen = ["schengen", "europe", "schengen visa", "euro trip"]
+france = ["france", "paris"]
+germany = ["germany", "berlin", "munich", "frankfurt", "deutschland"]
+italy = ["italy", "rome", "milan", "venice"]
+spain = ["spain", "madrid", "barcelona"]
+switzerland = ["switzerland", "swiss", "zurich", "geneva"]
+japan = ["japan", "jpn", "japaan", "tokyo", "osaka", "kyoto"]
+singapore = ["singapore", "singapur", "sg"]
+thailand = ["thailand", "bangkok", "phuket", "pattaya", "krabi", "thai"]
+uae-dubai = ["dubai", "uae", "emirates", "abu dhabi", "sharjah", "united arab emirates"]
+
+[purposes]
+tourism = [
+    "tourism", "tourist", "tour", "holiday", "holidays", "vacation", "vacations", "sightseeing",
+    "honeymoon", "leisure", "ghumne", "ghoomne", "ghumna", "ghoomna", "ghumane", "ghoomane",
+    "tourist visa", "family trip", "family holiday", "pleasure",
+]
+family_visit = [
+    "visiting family", "visit family", "family visit", "visiting relatives", "visit relatives",
+    "relatives", "rishtedar", "rishtedaar", "rishtedaron", "visiting friends", "visit friends",
+    "visiting my", "visit my", "meet my", "meeting my", "milne", "stay with", "staying with",
+    "visiting a friend", "visit a friend", "visit me", "visiting me", "meet me", "see me", "see my", "seeing my",
+    "milne aa", "milne aa rahe", "milne aa rahi",
+]
+business = [
+    "for business", "on business", "business trip", "business meeting", "business visit",
+    "business purpose", "business tour", "business ke liye", "conference", "meeting", "meetings",
+    "expo", "trade fair", "exhibition", "work trip", "official trip", "client meeting",
+    "office trip", "business visa", "seminar", "summit",
+]
+
+[professions]
+employed = [
+    "employed", "salaried", "salary", "employee", "job", "naukri", "private job", "private sector",
+    "engineer", "software engineer", "developer", "manager", "teacher", "nurse", "banker",
+    "accountant", "analyst", "executive", "corporate", "working professional", "work in",
+    "works in", "work at", "works at", "mnc", "professor", "it professional", "in it",
+]
+government_employee = [
+    "government", "govt", "government employee", "govt employee", "government job", "govt job",
+    "sarkari", "sarkari naukri", "psu", "civil servant", "ias", "ips", "railway", "railways",
+    "government teacher", "govt teacher", "government doctor", "govt doctor", "bank po",
+]
+defence_personnel = ["army", "navy", "air force", "airforce", "defence", "defense", "military", "fauji", "armed forces", "soldier"]
+self_employed_professional = [
+    "doctor", "doctors", "dr", "lawyer", "lawyers", "advocate", "ca", "chartered accountant",
+    "architect", "dentist", "physician", "surgeon", "self employed", "self-employed",
+    "own practice", "clinic",
+]
+business_owner = [
+    "businessman", "businesswoman", "business owner", "own business", "apna business",
+    "my business", "have a business", "has a business", "run a business", "runs a business",
+    "do business", "does business", "business karta", "business karti", "business karte",
+    "proprietor", "shop", "shopkeeper", "dukaan", "dukan", "trader", "vyapar", "vyapari",
+]
+company_director = ["director", "company director", "business partner", "partner in", "founder", "co-founder", "ceo", "md", "managing director"]
+freelancer = ["freelancer", "freelance", "freelancing", "consultant", "contractor"]
+farmer = ["farmer", "farming", "kisan", "kheti", "agriculture", "agriculturist", "zamindar"]
+landlord_investor = ["landlord", "rental income", "rent income", "investor", "investments", "lives on rent"]
+seafarer = ["seafarer", "sailor", "merchant navy", "mariner", "on a ship"]
+retired = ["retired", "retire", "retd", "pensioner", "pension", "retirement"]
+homemaker = ["homemaker", "home maker", "housewife", "house wife", "househusband", "grihini", "ghar par", "ghar pe", "stays at home", "stay at home", "stay at home mom"]
+unemployed = ["unemployed", "not working", "no job", "jobless", "between jobs", "berozgar", "job nahi", "kaam nahi"]
+university_student = ["student", "students", "college", "university", "uni", "btech", "mba", "mbbs", "phd", "masters", "graduation", "engineering student", "college student", "padhai", "studying", "studies"]
+school_student = ["school", "school student", "schoolgoing", "school going", "in school", "class", "kindergarten", "kg", "nursery"]
+infant = ["baby", "infant", "toddler", "newborn", "new born"]
+other = ["other", "something else", "kuch aur"]
+
+[relations]
+self = ["i", "me", "myself", "i'm", "im", "i am", "main", "mai", "mujhe", "khud", "apne aap"]
+spouse = ["wife", "husband", "spouse", "patni", "pati", "biwi", "wifey", "hubby", "mrs", "missus", "partner", "better half"]
+son = ["son", "sons", "beta", "bete", "betaa", "ladka", "boy"]
+daughter = ["daughter", "daughters", "beti", "betiyan", "ladki", "girl"]
+child = ["kid", "kids", "child", "children", "bachcha", "bachche", "baccha", "bacche", "bachha", "bachhe", "little one"]
+father = ["father", "dad", "daddy", "papa", "pappa", "pitaji", "pita ji", "abbu", "baba", "father-in-law", "father in law", "sasur"]
+mother = ["mother", "mom", "mum", "mummy", "mommy", "maa", "ma", "mammi", "ammi", "mata ji", "mataji", "mother-in-law", "mother in law", "saas"]
+sibling = ["brother", "sister", "bhai", "bhaiya", "behen", "behan", "didi", "sis", "bro", "siblings", "sibling"]
+grandparent = ["grandfather", "grandmother", "grandpa", "grandma", "granny", "dadi", "dada", "nana", "nani", "grandparents"]
+friend_colleague = ["friend", "friends", "dost", "colleague", "colleagues", "coworker", "co-worker"]
+
+[markers]
+# Words that change meaning, not values. Each list is a role used by app/brains/rules.py.
+we = ["we", "we're", "hum", "hum log", "humlog", "hamlog", "our", "us all", "all of us", "whole family"]
+couple = ["couple", "a couple"]
+parents = ["parents", "mom and dad", "mum and dad", "mummy papa", "mummy-papa", "maa papa", "maa baap", "mata pita", "mata-pita", "in-laws", "in laws", "mummy daddy"]
+two_of_us = ["hum dono", "we both", "both of us", "the two of us", "we two"]
+solo = ["just me", "only me", "sirf main", "solo", "alone", "akela", "akeli", "myself only"]
+plural = ["both", "dono", "all", "sab", "sabhi", "are", "hain", "each"]
+count_noun = ["people", "persons", "person", "log", "logon", "members", "travellers", "travelers", "pax", "adults", "of us", "jan", "jane"]
+count_of = ["family of", "group of", "total of", "total", "party of", "team of"]
+age_unit = ["year", "years", "yr", "yrs", "yo", "saal", "sal", "years old", "year old", "yrs old", "saal ka", "saal ki", "saal ke", "y/o"]
+month_unit = ["month", "months", "mahine", "mahina", "months old", "month old", "mahine ka", "mahine ki"]
+age_word = ["aged", "age", "umar", "umr", "is"]
+confirm = ["yes", "yeah", "yep", "yup", "yea", "correct", "right", "ok", "okay", "k", "haan", "han", "haa", "ha", "ji", "ji haan", "sahi", "sahi hai", "theek", "thik", "theek hai", "thik hai", "perfect", "confirm", "confirmed", "looks good", "sure", "that's right", "thats right", "all good", "bilkul", "done", "yes please"]
+deny = ["no", "nope", "nahi", "nahin", "na", "wrong", "galat", "incorrect", "not correct", "not right"]
+correct_cue = ["instead", "actually", "change", "changed", "rather", "sorry", "but", "balki", "not", "update", "fix", "correction", "matlab"]
+restart = ["start over", "restart", "reset", "new search", "phir se", "dobara", "start again", "clear", "new chat", "begin again", "fresh start"]
+remove = ["not going", "not coming", "isn't going", "isnt going", "isn't coming", "isnt coming", "won't come", "wont come", "won't go", "wont go", "nahi ja raha", "nahi ja rahi", "nahi ja rahe", "nahi aa raha", "nahi aa rahi", "remove", "drop"]
+greeting = ["hi", "hello", "hey", "hii", "hiii", "helo", "namaste", "namaskar", "hola", "good morning", "good afternoon", "good evening", "hey there", "ram ram", "sat sri akal"]
+business_word = ["business", "biz"]
+pronoun = ["he", "she", "they", "him", "her", "them", "woh", "wo", "unka", "uska", "his", "their"]
+conj = ["and", "aur", "or", "with", "plus", "n", "also", "along with", "together with", "saath", "ke saath", "ki saath", "&"]
+# Clear signs the message is not about a trip. Any of these makes the whole message off-topic.
+off_topic = [
+    "joke", "jokes", "code", "coding", "python", "javascript", "script", "program",
+    "debug", "essay", "poem", "story", "song", "recipe", "movie", "movies", "film", "cricket",
+    "weather", "mausam", "translate", "prompt", "instructions", "ignore", "pretend", "roleplay",
+    "hack", "password", "bitcoin", "crypto", "stock", "homework", "girlfriend", "boyfriend",
+    "capital", "news", "kahani", "gaana", "chutkula", "api key", "system prompt", "jailbreak",
+]
+# Hindi number words that are also English words; only numbers before a count noun.
+weak_number = ["do", "teen"]
+
+[fillers]
+# Ignored words. They never count against confidence.
+words = [
+    "a", "an", "the", "to", "for", "of", "in", "on", "at", "am", "was", "be", "been", "my",
+    "your", "it", "its", "this", "that", "these", "those", "going", "go", "goes", "travelling",
+    "traveling", "travel", "travels", "fly", "flying", "want", "wants", "wanted", "need", "needs",
+    "visa", "visas", "documents", "document", "docs", "doc", "apply", "applying", "application",
+    "hai", "hu", "hoon", "hun", "ho", "ka", "ki", "ke", "ko", "se", "mein", "ja", "jaa", "jana",
+    "jaana", "raha", "rahi", "rahe", "please", "plz", "pls", "kindly", "does", "as", "by",
+    "from", "next", "so", "then", "there", "wanna", "planning", "plan", "plans", "will", "would",
+    "should", "can", "could", "who", "what", "whats", "what's", "kya", "kar", "karta", "karti",
+    "karte", "karna", "karni", "sir", "maam", "ma'am", "madam", "thanks", "thank", "you",
+    "thankyou", "ty", "visit", "visiting", "work", "works", "working", "currently", "now", "abhi",
+    "only", "just", "too", "bhi", "family", "member", "everyone", "everybody", "has", "have",
+    "had", "get", "gets", "got", "old", "around", "about", "approx", "approximately", "like",
+    "re", "i'd", "id", "we'd", "i'll", "ill", "we'll", "let's", "lets", "chahiye", "chahta",
+    "chahti", "chahte", "liye", "wala", "wali", "wale", "hamara", "hamari", "hamare", "mera",
+    "meri", "mere", "apna", "apni", "apne", "some", "few", "days", "day", "week", "weeks", "soon",
+    "tomorrow", "kal", "december", "january", "february", "march", "april", "may", "june",
+    "july", "august", "september", "october", "november", "summer", "winter", "here", "where",
+    "why", "how", "which", "tell", "know", "required", "require", "requirement", "requirements",
+    "checklist", "list", "check", "show", "give", "send", "papers", "paper", "basically", "um",
+    "uh", "hmm", "well", "wait", "trip", "tickets", "ticket", "booked", "book", "booking",
+    "month long", "together", "ghar", "jayenge", "jaayenge", "jaenge", "jaa rahe", "ja rahe",
+    "ja rahi", "ja raha", "hain na", "planning to", "abroad", "country", "tak", "par", "pe",
+    "yaar", "bro please", "vala", "vali", "jo", "ye", "yeh", "inke", "unke", "humare", "hamko",
+    "humko", "hume", "hamein", "humein", "mai bhi", "wahan", "vahan", "waha", "jaane", "jaane ke",
+]
+
+[numbers]
+# Number words -> value. Digits are understood without being listed.
+one = 1
+two = 2
+three = 3
+four = 4
+five = 5
+six = 6
+seven = 7
+eight = 8
+nine = 9
+ten = 10
+eleven = 11
+twelve = 12
+ek = 1
+do = 2
+teen = 3
+char = 4
+chaar = 4
+paanch = 5
+panch = 5
+chhe = 6
+che = 6
+chhah = 6
+saat = 7
+aath = 8
+nau = 9
+das = 10
+gyarah = 11
+barah = 12
+twins = 2

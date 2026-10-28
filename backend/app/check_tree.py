@@ -18,7 +18,8 @@ from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
-from app.paths import default_tree_path
+from app.brains.lexicon import LexiconError, load_lexicon
+from app.paths import default_lexicon_path, default_tree_path
 from app.tree import LoadedTree, TreeError, load_tree
 
 PLACEHOLDER_MARK = "[PLACEHOLDER]"
@@ -67,6 +68,9 @@ def main(argv: Sequence[str] | None = None, *, today: date | None = None) -> int
     p.add_argument("path", nargs="?", type=Path, default=None)
     p.add_argument("--release", action="store_true", help="enforce go-live requirements")
     p.add_argument("--max-review-age-days", type=int, default=180)
+    p.add_argument(
+        "--lexicon", type=Path, default=None, help="lexicon.toml to check (default: ours)"
+    )
     args = p.parse_args(argv)
 
     path: Path = args.path or default_tree_path()
@@ -84,6 +88,15 @@ def main(argv: Sequence[str] | None = None, *, today: date | None = None) -> int
         max_review_age_days=args.max_review_age_days,
         today=today or date.today(),
     )
+    # The lexicon is checked against this tree: an alias for a removed id fails the build.
+    lexicon_path: Path | None = args.lexicon or (
+        default_lexicon_path() if args.path is None else None
+    )
+    if lexicon_path is not None:
+        try:
+            load_lexicon(lexicon_path, tree)
+        except LexiconError as exc:
+            report.errors += [f"lexicon: {problem}" for problem in str(exc).split("; ")]
     for w in report.warnings:
         print(f"  warning: {w}", file=sys.stderr)
     for e in report.errors:

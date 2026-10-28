@@ -10,6 +10,8 @@ dependencies = [
 [project.scripts]
 gvs-resolve = "app.cli:main"
 gvs-check-tree = "app.check_tree:main"
+gvs-chat = "app.repl:main"
+gvs-eval = "app.evaluate:main"
 
 [dependency-groups]
 dev = [
@@ -46,6 +48,12 @@ select = [
 ]
 ignore = ["PLR2004"]  # magic numbers are fine in a data-driven resolver
 
+[tool.ruff.lint.pylint]
+# The rules parser and the chat state machine are branchy by nature; keep limits, just higher.
+max-branches = 20
+max-returns = 12
+max-statements = 60
+
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
 
@@ -53,6 +61,8 @@ known-first-party = ["app"]
 "tests/**" = ["S101", "PLR2004", "PLR0913"]
 "app/cli.py" = ["T201"]
 "app/check_tree.py" = ["T201"]
+"app/repl.py" = ["T201"]
+"app/evaluate.py" = ["T201"]
 
 # ---------------------------------------------------------------- mypy
 [tool.mypy]

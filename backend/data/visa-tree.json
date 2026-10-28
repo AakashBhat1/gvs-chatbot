@@ -50,6 +50,7 @@
     "spouse": { "label": "Spouse" },
     "son": { "label": "Son" },
     "daughter": { "label": "Daughter" },
+    "child": { "label": "Child" },
     "father": { "label": "Father" },
     "mother": { "label": "Mother" },
     "sibling": { "label": "Brother or sister" },
@@ -57,7 +58,7 @@
     "friend_colleague": { "label": "Friend or colleague" }
   },
   "relation_groups": {
-    "child": ["son", "daughter"],
+    "children": ["son", "daughter", "child"],
     "parent": ["father", "mother"]
   },
   "age_bands": {
@@ -128,7 +129,7 @@
     "italy": ["travel_insurance"],
     "spain": ["travel_insurance"],
     "switzerland": ["travel_insurance"],
-    "@child": ["birth_certificate", "parents_consent"],
+    "@children": ["birth_certificate", "parents_consent"],
     "@spouse": ["relationship_proof"],
     "@family": ["family_covering_letter"]
   }

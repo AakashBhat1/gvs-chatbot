@@ -57,7 +57,7 @@ def test_real_tree_loads(real_tree: Any) -> None:
     assert len(real_tree.data.countries) == 15
     assert len(real_tree.data.purposes) == 3
     assert len(real_tree.data.professions) == 17
-    assert len(real_tree.data.relations) == 9
+    assert len(real_tree.data.relations) == 10
 
 
 def test_mini_tree_compiles_family_and_groups(mini_tree: Any) -> None:

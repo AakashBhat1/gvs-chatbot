@@ -1,0 +1,558 @@
+"""The no-AI brain: lexicon matching plus a few grammar rules.
+
+Pipeline for one message::
+
+    tokens -> spans (longest alias match) -> mentions (people) -> attach details
+           -> trip-level country/purpose -> intent -> Extraction
+
+Details attach to the nearest person mentioned *before* them in the same
+sentence ("me doctor, mom lawyer, son 3"), or the next one after if there is
+none ("3 year old son"). A bare answer with no person ("retired", "8") goes to
+whoever the bot just asked about.
+
+Confidence: the result is *confident* only if every word was explained (an
+alias, a marker or a filler) and nothing was ambiguous. When it isn't, the
+cascade can ask a smarter brain; with no smarter brain available, this result
+is still used and the bot's follow-up questions fill the gaps.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Final
+
+from app.brains import BrainResult
+from app.brains.lexicon import Lexicon
+from app.extraction import MAX_COUNT, Context, Extraction, Intent, TravellerPatch
+from app.form import MAX_TRAVELLERS
+from app.text import has_devanagari, tokenize
+
+HARD_SEPARATORS: Final = frozenset({".", ";", "!", "?"})
+SOFT_SEPARATORS: Final = frozenset({",", "+"})
+HINDI_IN: Final = frozenset({"me", "mai", "main"})  # "Japan me" = "in Japan"
+HOST_PHRASE_ENDINGS: Final = frozenset({"my", "with", "a"})  # "visit my son" -> son is the host
+NO_PROFESSION_SWAP: Final = "retired"  # "retired army officer" -> retired wins
+PERSON_KINDS: Final = frozenset(
+    {"relation", "we", "solo", "couple", "parents", "two_of_us", "pronoun"}
+)
+
+
+@dataclass(slots=True)
+class Span:
+    kind: str
+    value: str
+    tokens: tuple[str, ...]
+    sentence: int = 0
+    segment: int = 0
+    used: bool = False
+
+    @property
+    def text(self) -> str:
+        return " ".join(self.tokens)
+
+
+@dataclass(slots=True)
+class Slot:
+    relation: str | None = None
+    ref: int | None = None
+    profession: str | None = None
+    age: int | None = None
+    country: str | None = None
+    purpose: str | None = None
+    remove: bool = False
+    host: bool = False
+    from_plural: bool = False
+
+
+@dataclass(slots=True)
+class Mention:
+    pos: int  # index into spans
+    slots: list[int]
+    relation: str
+    plural_pending: bool = False  # "kids" with no number: one slot per age that follows
+    group: int = 0
+
+
+@dataclass(slots=True)
+class _Parse:
+    spans: list[Span]
+    slots: list[Slot] = field(default_factory=list)
+    mentions: list[Mention] = field(default_factory=list)
+    count: int | None = None
+    adults: int | None = None  # "two adults and one child" -> adults + children
+    country: str | None = None
+    purpose: str | None = None
+    conflict: bool = False
+    unexplained: int = 0
+    ambiguous: int = 0
+
+
+class RulesBrain:
+    name = "rules"
+
+    def __init__(self, lexicon: Lexicon) -> None:
+        self.lex = lexicon
+
+    # ------------------------------------------------------------------ public
+
+    def understand(self, message: str, ctx: Context) -> BrainResult:
+        p = _Parse(self._scan(tokenize(message)))
+        self._mark_boundaries(p)
+        self._make_mentions(p)
+        self._numbers(p, ctx)
+        self._professions(p, ctx)
+        self._places_and_purposes(p, ctx)
+        self._removals(p)
+        p.unexplained += sum(s.kind == "unknown" for s in p.spans)
+
+        extraction = self._build(p, ctx, message)
+        confident = p.unexplained == 0 and p.ambiguous == 0
+        return BrainResult(extraction=extraction, confident=confident, brain=self.name)
+
+    # ------------------------------------------------------------------ scanning
+
+    def _scan(self, tokens: list[str]) -> list[Span]:
+        lex = self.lex
+        spans: list[Span] = []
+        i = 0
+        while i < len(tokens):
+            tok = tokens[i]
+            if tok in HARD_SEPARATORS or tok in SOFT_SEPARATORS:
+                kind = "sep" if tok in HARD_SEPARATORS else "comma"
+                spans.append(Span(kind, tok, (tok,)))
+                i += 1
+                continue
+            for n in range(min(lex.max_phrase, len(tokens) - i), 0, -1):
+                hit = lex.lookup(tuple(tokens[i : i + n]))
+                if hit is not None:
+                    spans.append(Span(hit[0], hit[1], tuple(tokens[i : i + n])))
+                    i += n
+                    break
+            else:
+                if tok.isdigit() and len(tok) <= 3:
+                    spans.append(Span("number", tok, (tok,)))
+                elif tok in lex.weak_numbers:
+                    spans.append(Span("weak_number", str(lex.numbers[tok]), (tok,)))
+                elif tok in lex.numbers:
+                    spans.append(Span("number", str(lex.numbers[tok]), (tok,)))
+                else:
+                    spans.append(Span("unknown", tok, (tok,)))
+                i += 1
+
+        # Context fixes on the raw sequence, then drop fillers.
+        for k, s in enumerate(spans):
+            nxt = spans[k + 1] if k + 1 < len(spans) else None
+            prev = _prev_meaningful(spans, k)
+            if s.kind == "weak_number":
+                is_count = nxt is not None and nxt.kind == "count_noun"
+                s.kind = "number" if is_count else "filler"
+            elif (
+                s.kind == "relation"
+                and s.tokens[0] in HINDI_IN
+                and len(s.tokens) == 1
+                and prev is not None
+                and prev.kind in ("country", "purpose")
+            ):
+                s.kind = "filler"
+        return [s for s in spans if s.kind != "filler"]
+
+    @staticmethod
+    def _mark_boundaries(p: _Parse) -> None:
+        sentence = segment = 0
+        for s in p.spans:
+            if s.kind == "sep":
+                sentence += 1
+                segment += 1
+            elif s.kind in ("comma", "conj"):
+                segment += 1
+            s.sentence, s.segment = sentence, segment
+
+    # ------------------------------------------------------------------ people
+
+    def _new_slots(self, p: _Parse, relation: str, n: int, *, plural: bool) -> list[int]:
+        start = len(p.slots)
+        for _ in range(n):
+            if len(p.slots) >= MAX_COUNT:
+                p.ambiguous += 1
+                break
+            p.slots.append(Slot(relation=relation, from_plural=plural))
+        return list(range(start, len(p.slots)))
+
+    def _self_slot(self, p: _Parse) -> list[int]:
+        for i, slot in enumerate(p.slots):
+            if slot.relation == "self":
+                return [i]
+        return self._new_slots(p, "self", 1, plural=False)
+
+    def _make_mentions(self, p: _Parse) -> None:
+        group = 0
+        last_kind = ""
+        for k, s in enumerate(p.spans):
+            if s.kind in PERSON_KINDS and last_kind != "person":
+                group += 1
+            created = self._mention_for(p, k, s, group)
+            if created:
+                last_kind = "person"
+            elif s.kind not in ("conj", "comma", "plural"):
+                last_kind = s.kind
+
+    def _mention_for(self, p: _Parse, k: int, s: Span, group: int) -> bool:
+        if s.kind == "relation":
+            if s.value == "self":
+                slots = self._self_slot(p)
+                p.mentions.append(Mention(k, slots, "self", group=group))
+                return True
+            prev = _prev_meaningful(p.spans, k)
+            if self._is_host(p, k):
+                s.used = True
+                slots = [len(p.slots)]
+                p.slots.append(Slot(relation=s.value, host=True))
+                p.mentions.append(Mention(k, slots, s.value, group=-1))
+                return False
+            if s.text in self.lex.plural_relations:
+                n = None
+                if prev is not None and prev.kind == "number" and 1 <= int(prev.value) <= 8:
+                    n = int(prev.value)
+                    prev.used = True
+                slots = self._new_slots(p, s.value, n or 1, plural=True)
+                p.mentions.append(Mention(k, slots, s.value, plural_pending=n is None, group=group))
+                return True
+            if prev is not None and prev.kind == "number" and prev.value == "1":
+                prev.used = True  # "one child" is a count, not an age
+            slots = self._reuse_or_new(p, s.value)
+            p.mentions.append(Mention(k, slots, s.value, group=group))
+            return True
+        if s.kind in ("we", "solo", "two_of_us"):
+            slots = self._self_slot(p)
+            p.mentions.append(Mention(k, slots, "self", group=group))
+            if s.kind == "solo":
+                p.count = 1
+            elif s.kind == "two_of_us":
+                p.count = 2
+            return True
+        if s.kind == "parents":
+            slots = self._reuse_or_new(p, "mother") + self._reuse_or_new(p, "father")
+            p.mentions.append(Mention(k, slots, "parents", group=group))
+            return True
+        if s.kind == "couple":
+            slots = self._self_slot(p) + self._reuse_or_new(p, "spouse")
+            p.mentions.append(Mention(k, slots, "spouse", group=group))
+            p.count = 2
+            return True
+        if s.kind == "pronoun":
+            for m in reversed(p.mentions):
+                if m.relation != "self" and m.group != -1:
+                    p.mentions.append(Mention(k, m.slots, m.relation, group=group))
+                    return True
+            return False
+        return False
+
+    def _reuse_or_new(self, p: _Parse, relation: str) -> list[int]:
+        """A second mention of the same singular relation is the same person."""
+        for i, slot in enumerate(p.slots):
+            if slot.relation == relation and not slot.from_plural and not slot.host:
+                return [i]
+        return self._new_slots(p, relation, 1, plural=False)
+
+    def _is_host(self, p: _Parse, k: int) -> bool:
+        """'visit my son' / 'bete se milne': the relation is who they visit, not a traveller."""
+        prev = _prev_meaningful(p.spans, k)
+        if (
+            prev is not None
+            and prev.value == "family_visit"
+            and prev.tokens[-1] in HOST_PHRASE_ENDINGS
+        ):
+            return True
+        nxt = p.spans[k + 1] if k + 1 < len(p.spans) else None
+        return nxt is not None and nxt.value == "family_visit" and nxt.tokens[0] == "milne"
+
+    # ------------------------------------------------------------------ attaching
+
+    def _mentions_in(self, p: _Parse, sentence: int) -> list[Mention]:
+        return [
+            m
+            for m in p.mentions
+            if m.group != -1 and m.pos >= 0 and p.spans[m.pos].sentence == sentence
+        ]
+
+    def _nearest(self, p: _Parse, k: int, *, prefer_right: bool = False) -> Mention | None:
+        same = self._mentions_in(p, p.spans[k].sentence)
+        left = [m for m in same if m.pos < k]
+        right = [m for m in same if m.pos > k]
+        if prefer_right and right:
+            return right[0]
+        if left:
+            return left[-1]
+        return right[0] if right else None
+
+    def _numbers(self, p: _Parse, ctx: Context) -> None:
+        spans = p.spans
+        last_age_mention: Mention | None = None
+        for k, s in enumerate(spans):
+            if s.kind != "number" or s.used:
+                if s.kind not in ("number", "conj", "comma", "age_word"):
+                    last_age_mention = None
+                continue
+            value = int(s.value)
+            if self._negated(p, k):  # "10 not 8": the negated value is just ignored
+                s.used = True
+                continue
+            prev = _prev_meaningful(spans, k)
+            prev2 = _prev_meaningful(spans, k - 1) if prev is not None else None
+            nxt = spans[k + 1] if k + 1 < len(spans) else None
+            s.used = True
+
+            if (nxt is not None and nxt.kind == "count_noun") or (
+                prev is not None and prev.kind == "count_of"
+            ):
+                p.count = value
+                if nxt is not None and nxt.tokens == ("adults",):
+                    p.adults = value
+                continue
+            unit_next = nxt is not None and nxt.kind in ("age_unit", "month_unit")
+            if (
+                not unit_next
+                and prev is not None
+                and (
+                    prev.kind == "we"
+                    or (prev.kind == "plural" and prev2 is not None and prev2.kind == "we")
+                )
+            ):
+                p.count = value
+                continue
+
+            years: int | None = None
+            target: Mention | None = None
+            if nxt is not None and unit_next:
+                years = value if nxt.kind == "age_unit" else value // 12
+                after = spans[k + 2] if k + 2 < len(spans) else None
+                if after is not None and after.kind == "relation":
+                    target = self._mention_at(p, k + 2)
+                else:
+                    target = self._nearest(p, k)
+            elif prev is not None and prev.kind in ("relation", "pronoun", "we"):
+                years, target = value, self._mention_at(p, k - 1)
+            elif prev is not None and prev.kind == "age_word":
+                years, target = value, self._nearest(p, k)
+            elif prev is not None and prev.kind in ("conj", "comma") and last_age_mention:
+                years, target = value, last_age_mention
+            if years is None:
+                years = value
+                if self._context_ref(p, ctx, "age", years):
+                    continue
+                p.ambiguous += 1
+                continue
+            if years > 110:
+                p.ambiguous += 1
+                continue
+            if target is None:
+                if not self._context_ref(p, ctx, "age", years):
+                    p.ambiguous += 1
+                continue
+            self._assign_age(p, target, years)
+            last_age_mention = target
+
+    @staticmethod
+    def _negated(p: _Parse, k: int) -> bool:
+        """'not tourism', 'no 8': the value right after a negation is being ruled out."""
+        prev = _prev_meaningful(p.spans, k)
+        return prev is not None and (prev.kind == "deny" or prev.tokens == ("not",))
+
+    def _mention_at(self, p: _Parse, pos: int) -> Mention | None:
+        for m in p.mentions:
+            if m.pos == pos:
+                return m if m.group != -1 else None
+        return None
+
+    def _assign_age(self, p: _Parse, m: Mention, years: int) -> None:
+        free = [i for i in m.slots if p.slots[i].age is None]
+        if free:
+            p.slots[free[0]].age = years
+        elif m.plural_pending and len(p.slots) < MAX_COUNT:
+            new = self._new_slots(p, m.relation, 1, plural=True)
+            m.slots += new
+            p.slots[new[0]].age = years
+        else:
+            p.ambiguous += 1
+
+    def _professions(self, p: _Parse, ctx: Context) -> None:
+        for k, s in enumerate(p.spans):
+            if s.kind == "business_word":
+                if self._mentions_in(p, s.sentence):
+                    s.kind, s.value = "profession", "business_owner"
+                else:
+                    s.kind, s.value = "purpose", "business"
+                    continue
+            if s.kind != "profession" or self._negated(p, k):
+                continue
+            # "newborn son", "retired couple": a profession right before a person is theirs.
+            nxt = p.spans[k + 1] if k + 1 < len(p.spans) else None
+            ahead = (
+                self._mention_at(p, k + 1) if nxt is not None and nxt.kind in PERSON_KINDS else None
+            )
+            target = ahead or self._nearest(p, k)
+            if target is None:
+                if not self._context_ref(p, ctx, "profession", s.value):
+                    p.ambiguous += 1
+                continue
+            for m in self._spread(p, target, k, s):
+                for i in m.slots:
+                    slot = p.slots[i]
+                    if slot.profession is None or s.value == NO_PROFESSION_SWAP:
+                        slot.profession = s.value
+
+    def _spread(self, p: _Parse, target: Mention, k: int, s: Span) -> list[Mention]:
+        """'me and my wife are doctors' -> the profession applies to the whole group."""
+        group = [m for m in p.mentions if m.group == target.group and m.pos < k]
+        if len(group) < 2:
+            return [target]
+        between = p.spans[group[-1].pos + 1 : k]
+        plural_word = s.text.endswith("s") and self.lex.lookup(tuple(s.text[:-1].split())) == (
+            "profession",
+            s.value,
+        )
+        has_we = any(p.spans[m.pos].kind == "we" for m in group)
+        if plural_word or has_we or any(b.kind == "plural" for b in between):
+            return group
+        return [target]
+
+    def _context_ref(self, p: _Parse, ctx: Context, what: str, value: str | int) -> bool:
+        """Attach a detail with no person in the message to whoever the bot asked about."""
+        asked = ctx.asked
+        targets: tuple[int, ...] = ()
+        if asked is not None and asked.field == what and asked.travellers:
+            taken = sum(1 for sl in p.slots if sl.ref is not None and getattr(sl, what) is not None)
+            if taken == 0 and any(s.kind == "plural" for s in p.spans):
+                targets = asked.travellers  # "both retired" / "dono retired"
+            elif taken < len(asked.travellers):
+                targets = (asked.travellers[taken],)
+        if not targets and what == "profession":
+            # A bare profession with one person still missing one is theirs. Bare numbers
+            # never get this fallback: "what is 2+2" must not become someone's age.
+            lacking = [i for i, t in enumerate(ctx.form.travellers) if t.profession is None]
+            if len(lacking) == 1:
+                targets = (lacking[0],)
+            elif not ctx.form.travellers and not p.mentions:
+                me = self._self_slot(p)[0]
+                p.mentions.append(Mention(-1, [me], "self"))
+                p.slots[me].profession = str(value)
+                return True
+        if not targets:
+            return False
+        for ref in targets:
+            slot = next((sl for sl in p.slots if sl.ref == ref), None)
+            if slot is None:
+                slot = Slot(ref=ref)
+                p.slots.append(slot)
+            if what == "age":
+                slot.age = int(value)
+            else:
+                slot.profession = str(value)
+        return True
+
+    def _places_and_purposes(self, p: _Parse, ctx: Context) -> None:
+        trip = {"country": ctx.form.country, "purpose": ctx.form.purpose}
+        found: dict[str, str | None] = {"country": None, "purpose": None}
+        for k, s in enumerate(p.spans):
+            if s.kind not in ("country", "purpose") or self._negated(p, k):
+                continue
+            kind = s.kind
+            current = found[kind] or trip[kind]
+            if current is None:
+                found[kind] = s.value
+                continue
+            if s.value == current:
+                continue
+            people = [
+                m
+                for m in p.mentions
+                if m.group != -1
+                and m.relation != "self"
+                and m.pos >= 0
+                and p.spans[m.pos].segment == s.segment
+            ]
+            if people:
+                for m in people:
+                    for i in m.slots:
+                        setattr(p.slots[i], kind, s.value)
+            elif found[kind] is not None and trip[kind] is None:
+                p.ambiguous += 1  # two different countries for the whole trip
+            else:
+                found[kind] = s.value
+                p.conflict = True
+        p.country, p.purpose = found["country"], found["purpose"]
+
+    def _removals(self, p: _Parse) -> None:
+        for k, s in enumerate(p.spans):
+            if s.kind == "remove":
+                target = self._nearest(p, k)
+                if target is None or target.relation == "self":
+                    p.ambiguous += 1
+                    continue
+                for i in target.slots:
+                    p.slots[i].remove = True
+
+    # ------------------------------------------------------------------ result
+
+    def _build(self, p: _Parse, ctx: Context, message: str) -> Extraction:
+        kinds = {s.kind for s in p.spans}
+        if "restart" in kinds:
+            return Extraction(intent="restart")
+        if "off_topic" in kinds:
+            return Extraction(on_topic=False)
+
+        patches = tuple(
+            TravellerPatch(
+                ref=sl.ref,
+                relation=sl.relation,
+                profession=sl.profession,
+                age=sl.age,
+                country=sl.country,
+                purpose=sl.purpose,
+                remove=sl.remove,
+            )
+            for sl in p.slots
+            if not sl.host
+        )
+        bare_me = patches == (TravellerPatch(relation="self"),)
+        if bare_me and not (p.country or p.purpose or p.count) and p.unexplained:
+            patches = ()  # "write me a poem": 'me' is not a traveller here
+        if p.adults is not None:
+            kids = sum(1 for sl in p.slots if sl.relation in self.lex.ask_age_for and not sl.host)
+            p.count = p.adults + kids
+        details = bool(p.country or p.purpose or p.count or patches)
+        intent: Intent
+        if details:
+            corrective = p.conflict or kinds & {"correct_cue", "deny", "remove"}
+            intent = "correct" if corrective else "give_details"
+        elif "deny" in kinds:
+            intent = "correct"
+        elif "confirm" in kinds:
+            intent = "confirm"
+        else:
+            intent = "give_details"
+
+        signal = kinds & {"confirm", "deny", "greeting"}
+        on_topic = details or bool(signal) or has_devanagari(message) or not p.spans
+        if len(patches) > MAX_TRAVELLERS:  # keep the first 8; the count tells the bot to say so
+            p.count = max(p.count or 0, len(patches))
+            patches = patches[:MAX_TRAVELLERS]
+        count = p.count if p.count is not None and 1 <= p.count <= MAX_COUNT else None
+        if p.count is not None and count is None:
+            p.ambiguous += 1
+        return Extraction(
+            on_topic=on_topic,
+            intent=intent,
+            country=p.country,
+            purpose=p.purpose,
+            traveller_count=count,
+            travellers=patches,
+        )
+
+
+def _prev_meaningful(spans: list[Span], k: int) -> Span | None:
+    """The span before ``k`` that is not a filler."""
+    for j in range(k - 1, -1, -1):
+        if spans[j].kind != "filler":
+            return spans[j]
+    return None

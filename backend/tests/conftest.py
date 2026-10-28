@@ -78,6 +78,11 @@ def real_tree() -> LoadedTree:
     return load_tree(default_tree_path())
 
 
+@pytest.fixture(scope="module")
+def real_tree_module() -> LoadedTree:
+    return load_tree(default_tree_path())
+
+
 @pytest.fixture
 def write_tree(tmp_path: Path) -> Callable[[dict[str, Any]], Path]:
     def _write(obj: dict[str, Any], name: str = "visa-tree.json") -> Path:

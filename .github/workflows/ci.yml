@@ -47,6 +47,11 @@ jobs:
       - name: Data check (visa-tree.json)
         run: uv run gvs-check-tree
 
+      - name: Understanding scores (no-AI brain)
+        run: |
+          uv run gvs-eval --show 0
+          uv run gvs-eval --set evals/holdout.jsonl --show 0
+
       - name: Dependency audit
         run: |
           uv export --frozen --no-dev --no-emit-project --format requirements-txt > "$RUNNER_TEMP/req.txt"
