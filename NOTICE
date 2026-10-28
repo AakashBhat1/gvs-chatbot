@@ -1,0 +1,38 @@
+GVS chatbot
+===========
+
+This project's own code has no licence chosen yet (planned: Apache-2.0).
+
+It includes data generated from the third-party sources below
+(backend/data/generated/lexicon.json, backend/evals/oos.jsonl). Each source is
+pinned by sha256 in backend/data/sources.toml and rebuilt with
+`uv run --group build python -m tools.build_lexicon`.
+
+STATUS: licence review pending. Items marked [REVIEW] need a decision before
+any public release; the rest only need this notice kept with the data.
+
+- GeoNames cities15000 - city and alternate city names.
+  CC BY 4.0. https://www.geonames.org  Data was filtered and reformatted.
+  Obtained via the npm package cities-15000-structured 1.0.1 (MIT).
+
+- Unicode CLDR 49 (cldr-localenames-full) - country names in en, en-IN, hi, hi-Latn.
+  Copyright (c) 1991-2026 Unicode, Inc. Unicode License v3.
+
+- i18n-iso-countries 7.14.0 - country names and alternatives in en and hi. MIT.
+
+- [REVIEW] world-countries 5.1.0 (mledoze/countries) - alternative spellings,
+  official names and demonyms. ODbL 1.0 (share-alike for the derived database).
+
+- [REVIEW] jneidel/job-titles - job titles mapped to profession buckets. No
+  licence file; compiled from sources including johnpcarty/Thesaurus-of-Job-Titles
+  (GPL-3.0) and fluquid/find_job_titles (MIT).
+
+- CLINC150 (Larson et al., 2019) - off-topic test set only, not part of the bot.
+  CC BY 3.0. https://github.com/clinc/oos-eval
+
+- wordfreq 3.1.1 (Robyn Speer) - build-time only, used to skip common English
+  words and to list them for the typo guard. Code Apache-2.0; word lists
+  CC BY-SA 4.0. The list of common English words is stored in the generated file.
+
+Runtime dependencies: pydantic (MIT). Development: pytest, pytest-cov, ruff,
+mypy (MIT/Apache-2.0).

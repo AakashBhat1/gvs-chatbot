@@ -13,6 +13,10 @@ import unicodedata
 from typing import Final
 
 MAX_MESSAGE_CHARS: Final = 500
+LATIN_END: Final = 0x0250  # Latin-1 + Latin Extended-A/B
+HINDI_DIGITS: Final = str.maketrans(
+    "\u0966\u0967\u0968\u0969\u096a\u096b\u096c\u096d\u096e\u096f", "0123456789"
+)
 
 _DROP_CATEGORIES = frozenset({"Cc", "Cf", "Co", "Cs", "Cn"})
 _SPACE = re.compile(r"\s+")
@@ -50,9 +54,23 @@ def clean(raw: str, limit: int = MAX_MESSAGE_CHARS) -> str:
     return text
 
 
+def fold_latin(text: str) -> str:
+    """Strip accents from Latin letters only ("Montréal" -> "Montreal").
+
+    Hindi script is left untouched: decomposing it would split nukta letters.
+    """
+    out: list[str] = []
+    for ch in text:
+        if ord(ch) < LATIN_END:
+            out.extend(c for c in unicodedata.normalize("NFKD", ch) if not unicodedata.combining(c))
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
 def tokenize(text: str) -> list[str]:
-    """Lowercase tokens; apostrophes normalised to ASCII."""
-    lowered = text.lower().replace("\u2019", "'")
+    """Lowercase tokens; accents folded, apostrophes and Hindi digits normalised."""
+    lowered = fold_latin(text.lower().replace("\u2019", "'")).translate(HINDI_DIGITS)
     for pattern, replacement in _REWRITES:
         lowered = pattern.sub(replacement, lowered)
     return _TOKEN.findall(lowered)

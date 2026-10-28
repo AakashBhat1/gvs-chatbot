@@ -98,7 +98,12 @@ def _join(names: list[str]) -> str:
     return ", ".join(names[:-1]) + " and " + names[-1]
 
 
-PLURALS: Final = {"child": "children"}
+PLURALS: Final = {
+    "child": "children",
+    "friend_colleague": "friends or colleagues",
+    "sibling": "brothers or sisters",
+    "grandparent": "grandparents",
+}
 
 
 def _people(form: TripForm, indices: tuple[int, ...], tree: LoadedTree) -> tuple[str, bool]:

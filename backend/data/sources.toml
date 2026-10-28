@@ -1,0 +1,70 @@
+# Open data the lexicon generator pulls in. Every file is pinned by sha256, so a
+# changed upstream file stops the build instead of silently changing the bot.
+#
+# Licence review is still to do (see NOTICE at the repo root). Entries marked
+# `review = true` need a decision before any public release.
+#
+# Fetch + build:  uv run --group build python -m tools.build_lexicon
+
+[[source]]
+id = "geonames-cities15000"
+url = "https://registry.npmjs.org/cities-15000-structured/-/cities-15000-structured-1.0.1.tgz"
+member = "package/dist/cities15000.txt"
+sha256 = "225f0e98a6f57fa79c5ab78f52b31d072928a2d0fa3361b52ff318a8183bbd5c"
+licence = "CC-BY-4.0 (data, GeoNames); MIT (npm wrapper)"
+attribution = "City data from GeoNames (https://www.geonames.org), CC BY 4.0, filtered and reformatted."
+used_for = "City and alternate city names -> country"
+
+[[source]]
+id = "cldr-localenames"
+url = "https://registry.npmjs.org/cldr-localenames-full/-/cldr-localenames-full-49.0.0.tgz"
+member = "package/main/{locale}/territories.json"
+locales = ["en", "en-IN", "hi", "hi-Latn"]
+sha256 = "d00bafb534848f142b3645d6046be81a1094fb00e809cd2c519f5e031198ba11"
+licence = "Unicode-3.0"
+attribution = "Country names from Unicode CLDR 49, Copyright Unicode, Inc., Unicode License v3."
+used_for = "Country names in English, Hinglish (hi-Latn) and Hindi script"
+
+[[source]]
+id = "i18n-iso-countries"
+url = "https://registry.npmjs.org/i18n-iso-countries/-/i18n-iso-countries-7.14.0.tgz"
+member = "package/langs/{locale}.json"
+locales = ["en", "hi"]
+sha256 = "bb418ebfb965789fcfbcce7dee59888d901ef64b03601da78b2e224cd6f5825c"
+licence = "MIT"
+attribution = "Country names from i18n-iso-countries (MIT)."
+used_for = "Country names and common alternatives (USA, UAE, Great Britain)"
+
+[[source]]
+id = "world-countries"
+url = "https://registry.npmjs.org/world-countries/-/world-countries-5.1.0.tgz"
+member = "package/countries.json"
+sha256 = "329eb6ef4099ffb590219c9beb634bf489a5e4b10d8ab0ac52a58ebf7b9f8495"
+licence = "ODbL-1.0 (per upstream mledoze/countries)"
+attribution = "Country names, alternative spellings and demonyms from mledoze/countries, ODbL."
+used_for = "Alternative spellings (Nippon), official names, demonyms (British, Japanese)"
+review = true
+
+[[source]]
+id = "job-titles"
+url = "https://raw.githubusercontent.com/jneidel/job-titles/master/job-titles.json"
+sha256 = "6b53d05c362340dd033e56d7f9e893b41b9543ae60fe6569b699638f0e5ef4d9"
+licence = "No licence file; compiled from sources incl. GPL-3.0 (johnpcarty) and MIT (fluquid)"
+attribution = "Job titles from jneidel/job-titles."
+used_for = "Job titles -> profession buckets"
+review = true
+
+[[source]]
+id = "clinc150"
+url = "https://raw.githubusercontent.com/clinc/oos-eval/master/data/data_full.json"
+sha256 = "36923c3705a59e08fe9c3883d8bc2dd966ef93e22cb78ac41171782a698d56e0"
+licence = "CC-BY-3.0"
+attribution = "CLINC150 (Larson et al., 2019), CC BY 3.0."
+used_for = "Off-topic test set (evals/oos.jsonl); not part of the bot"
+
+[[source]]
+id = "wordfreq"
+url = "https://pypi.org/project/wordfreq/3.1.1/"
+licence = "Apache-2.0 (code); CC-BY-SA-4.0 (word lists)"
+attribution = "wordfreq by Robyn Speer, used at build time only to skip common English words."
+used_for = "Build-time filter only; nothing from it ships in the generated lexicon"

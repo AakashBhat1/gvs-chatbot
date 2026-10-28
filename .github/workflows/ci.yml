@@ -39,7 +39,7 @@ jobs:
         run: uv run ruff check --output-format=github .
 
       - name: Types
-        run: uv run mypy app tests
+        run: uv run mypy app tests tools
 
       - name: Tests
         run: uv run pytest --cov
@@ -47,10 +47,16 @@ jobs:
       - name: Data check (visa-tree.json)
         run: uv run gvs-check-tree
 
+      - name: Generated data is reproducible (pinned open data)
+        run: |
+          uv run --group build python -m tools.build_lexicon
+          git diff --exit-code -- data/generated evals/oos.jsonl
+
       - name: Understanding scores (no-AI brain)
         run: |
           uv run gvs-eval --show 0
           uv run gvs-eval --set evals/holdout.jsonl --show 0
+          uv run gvs-eval --set evals/oos.jsonl --show 0
 
       - name: Dependency audit
         run: |

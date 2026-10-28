@@ -37,3 +37,6 @@ backups/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Downloaded open data (tools/build_lexicon.py); pinned in data/sources.toml
+backend/data/raw/

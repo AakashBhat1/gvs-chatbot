@@ -8,23 +8,28 @@
   "countries": {
     "us": {
       "name": "United States of America",
-      "last_reviewed": null
+      "last_reviewed": null,
+      "iso2": "US"
     },
     "uk": {
       "name": "United Kingdom",
-      "last_reviewed": null
+      "last_reviewed": null,
+      "iso2": "GB"
     },
     "canada": {
       "name": "Canada",
-      "last_reviewed": null
+      "last_reviewed": null,
+      "iso2": "CA"
     },
     "australia": {
       "name": "Australia",
-      "last_reviewed": null
+      "last_reviewed": null,
+      "iso2": "AU"
     },
     "new-zealand": {
       "name": "New Zealand",
-      "last_reviewed": null
+      "last_reviewed": null,
+      "iso2": "NZ"
     },
     "schengen": {
       "name": "Schengen Area (Europe)",
@@ -32,500 +37,661 @@
     },
     "france": {
       "name": "France",
-      "last_reviewed": null
+      "last_reviewed": null,
+      "iso2": "FR"
     },
     "germany": {
       "name": "Germany",
-      "last_reviewed": null
+      "last_reviewed": null,
+      "iso2": "DE"
     },
     "italy": {
       "name": "Italy",
-      "last_reviewed": null
+      "last_reviewed": null,
+      "iso2": "IT"
     },
     "spain": {
       "name": "Spain",
-      "last_reviewed": null
+      "last_reviewed": null,
+      "iso2": "ES"
     },
     "switzerland": {
       "name": "Switzerland",
-      "last_reviewed": null
+      "last_reviewed": null,
+      "iso2": "CH"
     },
     "japan": {
       "name": "Japan",
-      "last_reviewed": null
+      "last_reviewed": null,
+      "iso2": "JP"
     },
     "singapore": {
       "name": "Singapore",
-      "last_reviewed": null
+      "last_reviewed": null,
+      "iso2": "SG"
     },
     "thailand": {
       "name": "Thailand",
-      "last_reviewed": null
+      "last_reviewed": null,
+      "iso2": "TH"
     },
     "uae-dubai": {
       "name": "United Arab Emirates (Dubai)",
-      "last_reviewed": null
+      "last_reviewed": null,
+      "iso2": "AE"
     }
   },
   "other_countries": {
     "afghanistan": {
-      "name": "Afghanistan"
+      "name": "Afghanistan",
+      "iso2": "AF"
     },
     "albania": {
-      "name": "Albania"
+      "name": "Albania",
+      "iso2": "AL"
     },
     "algeria": {
-      "name": "Algeria"
+      "name": "Algeria",
+      "iso2": "DZ"
     },
     "andorra": {
-      "name": "Andorra"
+      "name": "Andorra",
+      "iso2": "AD"
     },
     "angola": {
-      "name": "Angola"
+      "name": "Angola",
+      "iso2": "AO"
     },
     "antigua-and-barbuda": {
-      "name": "Antigua and Barbuda"
+      "name": "Antigua and Barbuda",
+      "iso2": "AG"
     },
     "argentina": {
-      "name": "Argentina"
+      "name": "Argentina",
+      "iso2": "AR"
     },
     "armenia": {
-      "name": "Armenia"
+      "name": "Armenia",
+      "iso2": "AM"
     },
     "austria": {
-      "name": "Austria"
+      "name": "Austria",
+      "iso2": "AT"
     },
     "azerbaijan": {
-      "name": "Azerbaijan"
+      "name": "Azerbaijan",
+      "iso2": "AZ"
     },
     "bahamas": {
-      "name": "Bahamas"
+      "name": "Bahamas",
+      "iso2": "BS"
     },
     "bahrain": {
-      "name": "Bahrain"
+      "name": "Bahrain",
+      "iso2": "BH"
     },
     "bangladesh": {
-      "name": "Bangladesh"
+      "name": "Bangladesh",
+      "iso2": "BD"
     },
     "barbados": {
-      "name": "Barbados"
+      "name": "Barbados",
+      "iso2": "BB"
     },
     "belarus": {
-      "name": "Belarus"
+      "name": "Belarus",
+      "iso2": "BY"
     },
     "belgium": {
-      "name": "Belgium"
+      "name": "Belgium",
+      "iso2": "BE"
     },
     "belize": {
-      "name": "Belize"
+      "name": "Belize",
+      "iso2": "BZ"
     },
     "benin": {
-      "name": "Benin"
+      "name": "Benin",
+      "iso2": "BJ"
     },
     "bhutan": {
-      "name": "Bhutan"
+      "name": "Bhutan",
+      "iso2": "BT"
     },
     "bolivia": {
-      "name": "Bolivia"
+      "name": "Bolivia",
+      "iso2": "BO"
     },
     "bosnia": {
-      "name": "Bosnia and Herzegovina"
+      "name": "Bosnia and Herzegovina",
+      "iso2": "BA"
     },
     "botswana": {
-      "name": "Botswana"
+      "name": "Botswana",
+      "iso2": "BW"
     },
     "brazil": {
-      "name": "Brazil"
+      "name": "Brazil",
+      "iso2": "BR"
     },
     "brunei-darusallam": {
-      "name": "Brunei"
+      "name": "Brunei",
+      "iso2": "BN"
     },
     "bulgaria": {
-      "name": "Bulgaria"
+      "name": "Bulgaria",
+      "iso2": "BG"
     },
     "burkina-faso": {
-      "name": "Burkina Faso"
+      "name": "Burkina Faso",
+      "iso2": "BF"
     },
     "burma-myanmar": {
-      "name": "Myanmar (Burma)"
+      "name": "Myanmar (Burma)",
+      "iso2": "MM"
     },
     "burundi": {
-      "name": "Burundi"
+      "name": "Burundi",
+      "iso2": "BI"
     },
     "cambodia": {
-      "name": "Cambodia"
+      "name": "Cambodia",
+      "iso2": "KH"
     },
     "capeverde": {
-      "name": "Cape Verde"
+      "name": "Cape Verde",
+      "iso2": "CV"
     },
     "chad": {
-      "name": "Chad"
+      "name": "Chad",
+      "iso2": "TD"
     },
     "chile": {
-      "name": "Chile"
+      "name": "Chile",
+      "iso2": "CL"
     },
     "china": {
-      "name": "China"
+      "name": "China",
+      "iso2": "CN"
     },
     "colombia": {
-      "name": "Colombia"
+      "name": "Colombia",
+      "iso2": "CO"
     },
     "comoros": {
-      "name": "Comoros"
+      "name": "Comoros",
+      "iso2": "KM"
     },
     "congo": {
-      "name": "Congo"
+      "name": "Congo",
+      "iso2": "CG"
     },
     "cote-divoire": {
-      "name": "Côte d'Ivoire"
+      "name": "Côte d'Ivoire",
+      "iso2": "CI"
     },
     "croatia": {
-      "name": "Croatia"
+      "name": "Croatia",
+      "iso2": "HR"
     },
     "cuba": {
-      "name": "Cuba"
+      "name": "Cuba",
+      "iso2": "CU"
     },
     "cyprus": {
-      "name": "Cyprus"
+      "name": "Cyprus",
+      "iso2": "CY"
     },
     "czech-republic": {
-      "name": "Czech Republic"
+      "name": "Czech Republic",
+      "iso2": "CZ"
     },
     "denmark": {
-      "name": "Denmark"
+      "name": "Denmark",
+      "iso2": "DK"
     },
     "djibouti": {
-      "name": "Djibouti"
+      "name": "Djibouti",
+      "iso2": "DJ"
     },
     "dominica": {
-      "name": "Dominica"
+      "name": "Dominica",
+      "iso2": "DM"
     },
     "dominican-republic": {
-      "name": "Dominican Republic"
+      "name": "Dominican Republic",
+      "iso2": "DO"
     },
     "ecuador": {
-      "name": "Ecuador"
+      "name": "Ecuador",
+      "iso2": "EC"
     },
     "egypt": {
-      "name": "Egypt"
+      "name": "Egypt",
+      "iso2": "EG"
     },
     "el-salvador": {
-      "name": "El Salvador"
+      "name": "El Salvador",
+      "iso2": "SV"
     },
     "eritrea": {
-      "name": "Eritrea"
+      "name": "Eritrea",
+      "iso2": "ER"
     },
     "estonia": {
-      "name": "Estonia"
+      "name": "Estonia",
+      "iso2": "EE"
     },
     "ethiopia": {
-      "name": "Ethiopia"
+      "name": "Ethiopia",
+      "iso2": "ET"
     },
     "fiji": {
-      "name": "Fiji"
+      "name": "Fiji",
+      "iso2": "FJ"
     },
     "finland": {
-      "name": "Finland"
+      "name": "Finland",
+      "iso2": "FI"
     },
     "gabon": {
-      "name": "Gabon"
+      "name": "Gabon",
+      "iso2": "GA"
     },
     "gambia": {
-      "name": "Gambia"
+      "name": "Gambia",
+      "iso2": "GM"
     },
     "georgia": {
-      "name": "Georgia"
+      "name": "Georgia",
+      "iso2": "GE"
     },
     "ghana": {
-      "name": "Ghana"
+      "name": "Ghana",
+      "iso2": "GH"
     },
     "greece": {
-      "name": "Greece"
+      "name": "Greece",
+      "iso2": "GR"
     },
     "grenada": {
-      "name": "Grenada"
+      "name": "Grenada",
+      "iso2": "GD"
     },
     "guatemala": {
-      "name": "Guatemala"
+      "name": "Guatemala",
+      "iso2": "GT"
     },
     "guyana": {
-      "name": "Guyana"
+      "name": "Guyana",
+      "iso2": "GY"
     },
     "haiti": {
-      "name": "Haiti"
+      "name": "Haiti",
+      "iso2": "HT"
     },
     "honduras": {
-      "name": "Honduras"
+      "name": "Honduras",
+      "iso2": "HN"
     },
     "hong-kong": {
-      "name": "Hong Kong"
+      "name": "Hong Kong",
+      "iso2": "HK"
     },
     "hungary": {
-      "name": "Hungary"
+      "name": "Hungary",
+      "iso2": "HU"
     },
     "iceland": {
-      "name": "Iceland"
+      "name": "Iceland",
+      "iso2": "IS"
     },
     "indonesia": {
-      "name": "Indonesia"
+      "name": "Indonesia",
+      "iso2": "ID"
     },
     "iran": {
-      "name": "Iran"
+      "name": "Iran",
+      "iso2": "IR"
     },
     "iraq": {
-      "name": "Iraq"
+      "name": "Iraq",
+      "iso2": "IQ"
     },
     "israel": {
-      "name": "Israel"
+      "name": "Israel",
+      "iso2": "IL"
     },
     "jamaica": {
-      "name": "Jamaica"
+      "name": "Jamaica",
+      "iso2": "JM"
     },
     "jordan": {
-      "name": "Jordan"
+      "name": "Jordan",
+      "iso2": "JO"
     },
     "kazakhstan": {
-      "name": "Kazakhstan"
+      "name": "Kazakhstan",
+      "iso2": "KZ"
     },
     "kenya": {
-      "name": "Kenya"
+      "name": "Kenya",
+      "iso2": "KE"
     },
     "korea": {
       "name": "Korea"
     },
     "kuwait": {
-      "name": "Kuwait"
+      "name": "Kuwait",
+      "iso2": "KW"
     },
     "kyrgyzstan": {
-      "name": "Kyrgyzstan"
+      "name": "Kyrgyzstan",
+      "iso2": "KG"
     },
     "laos": {
-      "name": "Laos"
+      "name": "Laos",
+      "iso2": "LA"
     },
     "lebanon": {
-      "name": "Lebanon"
+      "name": "Lebanon",
+      "iso2": "LB"
     },
     "liberia": {
-      "name": "Liberia"
+      "name": "Liberia",
+      "iso2": "LR"
     },
     "liechtenstein": {
-      "name": "Liechtenstein"
+      "name": "Liechtenstein",
+      "iso2": "LI"
     },
     "lithuania": {
-      "name": "Lithuania"
+      "name": "Lithuania",
+      "iso2": "LT"
     },
     "luxembourg": {
-      "name": "Luxembourg"
+      "name": "Luxembourg",
+      "iso2": "LU"
     },
     "macedonia": {
-      "name": "Macedonia"
+      "name": "Macedonia",
+      "iso2": "MK"
     },
     "malawi": {
-      "name": "Malawi"
+      "name": "Malawi",
+      "iso2": "MW"
     },
     "malaysia": {
-      "name": "Malaysia"
+      "name": "Malaysia",
+      "iso2": "MY"
     },
     "maldives": {
-      "name": "Maldives"
+      "name": "Maldives",
+      "iso2": "MV"
     },
     "mali": {
-      "name": "Mali"
+      "name": "Mali",
+      "iso2": "ML"
     },
     "malta": {
-      "name": "Malta"
+      "name": "Malta",
+      "iso2": "MT"
     },
     "mauritius": {
-      "name": "Mauritius"
+      "name": "Mauritius",
+      "iso2": "MU"
     },
     "mexico": {
-      "name": "Mexico"
+      "name": "Mexico",
+      "iso2": "MX"
     },
     "moldova": {
-      "name": "Moldova"
+      "name": "Moldova",
+      "iso2": "MD"
     },
     "mongolia": {
-      "name": "Mongolia"
+      "name": "Mongolia",
+      "iso2": "MN"
     },
     "monteserrat": {
-      "name": "Montserrat"
+      "name": "Montserrat",
+      "iso2": "MS"
     },
     "morocco": {
-      "name": "Morocco"
+      "name": "Morocco",
+      "iso2": "MA"
     },
     "mozambique": {
-      "name": "Mozambique"
+      "name": "Mozambique",
+      "iso2": "MZ"
     },
     "namibia": {
-      "name": "Namibia"
+      "name": "Namibia",
+      "iso2": "NA"
     },
     "nepal": {
-      "name": "Nepal"
+      "name": "Nepal",
+      "iso2": "NP"
     },
     "netherlands": {
-      "name": "Netherlands"
+      "name": "Netherlands",
+      "iso2": "NL"
     },
     "nicaragua": {
-      "name": "Nicaragua"
+      "name": "Nicaragua",
+      "iso2": "NI"
     },
     "nigeria": {
-      "name": "Nigeria"
+      "name": "Nigeria",
+      "iso2": "NG"
     },
     "north-korea": {
-      "name": "North Korea"
+      "name": "North Korea",
+      "iso2": "KP"
     },
     "norway": {
-      "name": "Norway"
+      "name": "Norway",
+      "iso2": "NO"
     },
     "oman": {
-      "name": "Oman"
+      "name": "Oman",
+      "iso2": "OM"
     },
     "pakistan": {
-      "name": "Pakistan"
+      "name": "Pakistan",
+      "iso2": "PK"
     },
     "palau": {
-      "name": "Palau"
+      "name": "Palau",
+      "iso2": "PW"
     },
     "panama": {
-      "name": "Panama"
+      "name": "Panama",
+      "iso2": "PA"
     },
     "papua-new-guinea": {
-      "name": "Papua New Guinea"
+      "name": "Papua New Guinea",
+      "iso2": "PG"
     },
     "paraguay": {
-      "name": "Paraguay"
+      "name": "Paraguay",
+      "iso2": "PY"
     },
     "peru": {
-      "name": "Peru"
+      "name": "Peru",
+      "iso2": "PE"
     },
     "philippines": {
-      "name": "Philippines"
+      "name": "Philippines",
+      "iso2": "PH"
     },
     "poland": {
-      "name": "Poland"
+      "name": "Poland",
+      "iso2": "PL"
     },
     "portugal": {
-      "name": "Portugal"
+      "name": "Portugal",
+      "iso2": "PT"
     },
     "qatar": {
-      "name": "Qatar"
+      "name": "Qatar",
+      "iso2": "QA"
     },
     "romania": {
-      "name": "Romania"
+      "name": "Romania",
+      "iso2": "RO"
     },
     "russia": {
-      "name": "Russia"
+      "name": "Russia",
+      "iso2": "RU"
     },
     "rwanda": {
-      "name": "Rwanda"
+      "name": "Rwanda",
+      "iso2": "RW"
     },
     "saint-kitts-and-nevis": {
-      "name": "Saint Kitts and Nevis"
+      "name": "Saint Kitts and Nevis",
+      "iso2": "KN"
     },
     "saint-lucia": {
-      "name": "Saint Lucia"
+      "name": "Saint Lucia",
+      "iso2": "LC"
     },
     "samoa": {
-      "name": "Samoa"
+      "name": "Samoa",
+      "iso2": "WS"
     },
     "saudiarabia": {
-      "name": "Saudi Arabia"
+      "name": "Saudi Arabia",
+      "iso2": "SA"
     },
     "senegal": {
-      "name": "Senegal"
+      "name": "Senegal",
+      "iso2": "SN"
     },
     "serbia": {
-      "name": "Serbia"
+      "name": "Serbia",
+      "iso2": "RS"
     },
     "slovakia": {
-      "name": "Slovakia"
+      "name": "Slovakia",
+      "iso2": "SK"
     },
     "slovenia": {
-      "name": "Slovenia"
+      "name": "Slovenia",
+      "iso2": "SI"
     },
     "south-africa": {
-      "name": "South Africa"
+      "name": "South Africa",
+      "iso2": "ZA"
     },
     "south-korea": {
-      "name": "South Korea"
+      "name": "South Korea",
+      "iso2": "KR"
     },
     "sri-lanka": {
-      "name": "Sri Lanka"
+      "name": "Sri Lanka",
+      "iso2": "LK"
     },
     "st-vincent-and-grenadines": {
-      "name": "St. Vincent and the Grenadines"
+      "name": "St. Vincent and the Grenadines",
+      "iso2": "VC"
     },
     "sudan": {
-      "name": "Sudan"
+      "name": "Sudan",
+      "iso2": "SD"
     },
     "suriname": {
-      "name": "Suriname"
+      "name": "Suriname",
+      "iso2": "SR"
     },
     "sweden": {
-      "name": "Sweden"
+      "name": "Sweden",
+      "iso2": "SE"
     },
     "syria": {
-      "name": "Syria"
+      "name": "Syria",
+      "iso2": "SY"
     },
     "taiwan": {
-      "name": "Taiwan"
+      "name": "Taiwan",
+      "iso2": "TW"
     },
     "tajikistan": {
-      "name": "Tajikistan"
+      "name": "Tajikistan",
+      "iso2": "TJ"
     },
     "tanzania": {
-      "name": "Tanzania"
+      "name": "Tanzania",
+      "iso2": "TZ"
     },
     "togo": {
-      "name": "Togo"
+      "name": "Togo",
+      "iso2": "TG"
     },
     "trinidad-and-tobago": {
-      "name": "Trinidad and Tobago"
+      "name": "Trinidad and Tobago",
+      "iso2": "TT"
     },
     "tunisia": {
-      "name": "Tunisia"
+      "name": "Tunisia",
+      "iso2": "TN"
     },
     "turkey": {
-      "name": "Turkey"
+      "name": "Turkey",
+      "iso2": "TR"
     },
     "turkmenistan": {
-      "name": "Turkmenistan"
+      "name": "Turkmenistan",
+      "iso2": "TM"
     },
     "tuvalu": {
-      "name": "Tuvalu"
+      "name": "Tuvalu",
+      "iso2": "TV"
     },
     "uganda": {
-      "name": "Uganda"
+      "name": "Uganda",
+      "iso2": "UG"
     },
     "ukraine": {
-      "name": "Ukraine"
+      "name": "Ukraine",
+      "iso2": "UA"
     },
     "uruguay": {
-      "name": "Uruguay"
+      "name": "Uruguay",
+      "iso2": "UY"
     },
     "uzbekistan": {
-      "name": "Uzbekistan"
+      "name": "Uzbekistan",
+      "iso2": "UZ"
     },
     "vanuatu": {
-      "name": "Vanuatu"
+      "name": "Vanuatu",
+      "iso2": "VU"
     },
     "vatican-city": {
-      "name": "Vatican City"
+      "name": "Vatican City",
+      "iso2": "VA"
     },
     "venezuela": {
-      "name": "Venezuela"
+      "name": "Venezuela",
+      "iso2": "VE"
     },
     "vietnam": {
-      "name": "Vietnam"
+      "name": "Vietnam",
+      "iso2": "VN"
     },
     "yemen": {
-      "name": "Yemen"
+      "name": "Yemen",
+      "iso2": "YE"
     },
     "zambia": {
-      "name": "Zambia"
+      "name": "Zambia",
+      "iso2": "ZM"
     },
     "zimbabwe": {
-      "name": "Zimbabwe"
+      "name": "Zimbabwe",
+      "iso2": "ZW"
     }
   },
   "purposes": {

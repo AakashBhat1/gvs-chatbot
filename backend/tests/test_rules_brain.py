@@ -162,11 +162,12 @@ def test_confidence_reflects_unknown_words(brain: RulesBrain) -> None:
     assert not brain.understand("Japan tourism, just me, staying at Hilton", ctx).confident
 
 
-def test_devanagari_is_on_topic_but_not_understood(brain: RulesBrain) -> None:
-    r = brain.understand("मुझे जापान जाना है", Context(TripForm(), None, "collecting"))
+def test_devanagari_is_understood_or_flagged(brain: RulesBrain) -> None:
+    understood = brain.understand("मुझे जापान जाना है", Context(TripForm(), None, "collecting"))
+    assert understood.extraction.country == "japan"
+    r = brain.understand("क्या हाल है", Context(TripForm(), None, "collecting"))
     assert r.extraction.on_topic
     assert not r.extraction.has_details
-    assert not r.confident
 
 
 def test_two_trip_countries_is_ambiguous(brain: RulesBrain) -> None:

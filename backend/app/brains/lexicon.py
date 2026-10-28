@@ -2,17 +2,21 @@
 
 from __future__ import annotations
 
+import json
 import tomllib
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Final
+from typing import Any, Final, Literal
 
+from app.paths import default_generated_path
 from app.text import tokenize
 from app.tree import LoadedTree
 
 MAX_LEXICON_BYTES: Final = 262_144
 MAX_PHRASE_TOKENS: Final = 5
+MAX_GENERATED_BYTES: Final = 16_000_000
+GENERATED_SECTIONS: Final = ("countries", "other_countries", "professions")
 
 VALUE_SECTIONS: Final = ("countries", "other_countries", "purposes", "professions", "relations")
 MARKERS: Final = frozenset(
@@ -43,6 +47,8 @@ MARKERS: Final = frozenset(
         "office_question",
         "with_others",
         "no_more",
+        "one_of",
+        "other_of",
     }
 )
 # Section name -> the kind of span it produces.
@@ -94,6 +100,10 @@ class Lexicon:
     compact: Mapping[str, tuple[str, str]] = field(default_factory=dict)
     # first letter -> single-word value aliases, for typo matching.
     fuzzy_pool: Mapping[str, tuple[tuple[str, tuple[str, str]], ...]] = field(default_factory=dict)
+    # Hindi-script words that appear in aliases; kept as-is instead of romanized.
+    script_words: frozenset[str] = frozenset()
+    # Real English words: never "corrected" ("suit" is not a typo of the city Suita).
+    common_words: frozenset[str] = frozenset()
 
     def lookup(self, tokens: tuple[str, ...]) -> tuple[str, str] | None:
         return self.phrases.get(tokens)
@@ -106,7 +116,13 @@ class Lexicon:
         """
         if hit := self.compact.get(token):
             return hit
-        if len(token) < FUZZY_MIN_LEN or not token.isalpha():
+        for suffix in ("s", "es"):  # "teachers", "dentists": plurals are grammar, not typos
+            stem = (
+                self.phrases.get((token.removesuffix(suffix),)) if token.endswith(suffix) else None
+            )
+            if stem is not None and stem[0] in VALUE_KINDS:
+                return stem
+        if len(token) < FUZZY_MIN_LEN or not token.isalpha() or token in self.common_words:
             return None
         limit = 1 if len(token) <= 7 else 2
         best: dict[tuple[str, str], int] = {}
@@ -152,7 +168,7 @@ def _typo_index(
     return compact, {k: tuple(v) for k, v in pool.items()}
 
 
-def parse_lexicon(raw: bytes, tree: LoadedTree) -> Lexicon:
+def parse_lexicon(raw: bytes, tree: LoadedTree, generated: bytes | None = None) -> Lexicon:
     if len(raw) > MAX_LEXICON_BYTES:
         raise LexiconError(f"lexicon is {len(raw)} bytes; limit is {MAX_LEXICON_BYTES}")
     try:
@@ -236,7 +252,11 @@ def parse_lexicon(raw: bytes, tree: LoadedTree) -> Lexicon:
     if errors:
         raise LexiconError("; ".join(errors))
 
-    compact, pool = _typo_index(phrases)
+    no_typos: set[tuple[str, ...]] = set()
+    common: frozenset[str] = frozenset()
+    if generated is not None:
+        no_typos, common = _merge_generated(generated, phrases, tables)
+    compact, pool = _typo_index({k: v for k, v in phrases.items() if k not in no_typos})
 
     return Lexicon(
         phrases=phrases,
@@ -247,12 +267,91 @@ def parse_lexicon(raw: bytes, tree: LoadedTree) -> Lexicon:
         max_phrase=max(len(t) for t in phrases),
         compact=compact,
         fuzzy_pool=pool,
+        script_words=frozenset(t for tokens in phrases for t in tokens if _devanagari(t)),
+        common_words=common,
     )
 
 
-def load_lexicon(path: Path, tree: LoadedTree) -> Lexicon:
+def _devanagari(token: str) -> bool:
+    return any("\u0900" <= ch <= "\u097f" for ch in token)
+
+
+def _merge_generated(
+    raw: bytes,
+    phrases: dict[tuple[str, ...], tuple[str, str]],
+    tables: Mapping[str, Mapping[str, object]],
+) -> tuple[set[tuple[str, ...]], frozenset[str]]:
+    """Add generated aliases. The hand lexicon wins every clash; ids must still exist.
+
+    Returns (generated phrases, common English words). Generated aliases match
+    exactly or not at all: typo correction only targets the curated lexicon.
+    """
+    if len(raw) > MAX_GENERATED_BYTES:
+        raise LexiconError(f"generated lexicon is {len(raw)} bytes; limit is {MAX_GENERATED_BYTES}")
     try:
+        doc = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise LexiconError(f"generated lexicon: {exc}") from exc
+    if not isinstance(doc, dict):
+        raise LexiconError("generated lexicon: expected an object")
+    errors: list[str] = []
+    no_typos: set[tuple[str, ...]] = set()
+    for section in GENERATED_SECTIONS:
+        entries = doc.get(section, {})
+        if not isinstance(entries, dict):
+            errors.append(f"generated.{section}: expected an object")
+            continue
+        for key, aliases in entries.items():
+            if key not in tables[section]:
+                errors.append(f"generated.{section}.{key}: not an id in visa-tree.json")
+                continue
+            for alias in _str_list(aliases, f"generated.{section}.{key}"):
+                tokens = tuple(tokenize(alias))
+                if not tokens or len(tokens) > MAX_PHRASE_TOKENS or tokens in phrases:
+                    continue  # the hand-written lexicon already decides this one
+                phrases[tokens] = (_KIND[section], key)
+                no_typos.add(tokens)
+    words = doc.get("common_words", [])
+    if not isinstance(words, list) or not all(isinstance(w, str) for w in words):
+        errors.append("generated.common_words: expected a list of strings")
+        words = []
+    if errors:
+        raise LexiconError("; ".join(errors[:20]))
+    return no_typos, frozenset(words)
+
+
+_CACHE: dict[tuple[object, ...], Lexicon] = {}
+_CACHE_SIZE: Final = 4
+
+
+def _signature(path: Path | None) -> tuple[object, ...]:
+    if path is None:
+        return (None,)
+    st = path.stat()
+    return (str(path.resolve()), st.st_mtime_ns, st.st_size)
+
+
+def load_lexicon(
+    path: Path, tree: LoadedTree, *, generated_path: Path | Literal["default"] | None = "default"
+) -> Lexicon:
+    """Load lexicon.toml, plus the generated lexicon (default location) when it exists.
+
+    Results are cached per (files, tree version): building ~70k phrases takes about
+    a second, and the result is immutable. Editing either file invalidates the cache.
+    """
+    if generated_path == "default":
+        default = default_generated_path()
+        generated_path = default if default.exists() else None
+    try:
+        key = (_signature(path), _signature(generated_path), tree.version)
+        if (cached := _CACHE.get(key)) is not None:
+            return cached
         raw = path.read_bytes()
+        generated = generated_path.read_bytes() if generated_path is not None else None
     except OSError as exc:
-        raise LexiconError(f"cannot read {path}: {exc}") from exc
-    return parse_lexicon(raw, tree)
+        raise LexiconError(f"cannot read lexicon: {exc}") from exc
+    lexicon = parse_lexicon(raw, tree, generated)
+    if len(_CACHE) >= _CACHE_SIZE:
+        _CACHE.pop(next(iter(_CACHE)))
+    _CACHE[key] = lexicon
+    return lexicon

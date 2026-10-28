@@ -14,6 +14,9 @@ gvs-chat = "app.repl:main"
 gvs-eval = "app.evaluate:main"
 
 [dependency-groups]
+build = [
+    "wordfreq>=3.1,<4",
+]
 dev = [
     "pytest>=8.3",
     "pytest-cov>=6.0",
@@ -63,6 +66,8 @@ known-first-party = ["app"]
 "app/check_tree.py" = ["T201"]
 "app/repl.py" = ["T201"]
 "app/evaluate.py" = ["T201"]
+# Build-time CLI: prints progress, imports its build-only dependency lazily, data tables.
+"tools/**" = ["T201", "PLC0415", "SIM905", "E501"]
 
 # ---------------------------------------------------------------- mypy
 [tool.mypy]
@@ -70,6 +75,10 @@ python_version = "3.12"
 strict = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["wordfreq"]  # build-only dependency, absent in the default install
+ignore_missing_imports = true
 
 [tool.pydantic-mypy]
 init_forbid_extra = true

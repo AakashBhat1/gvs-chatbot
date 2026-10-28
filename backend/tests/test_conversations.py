@@ -191,7 +191,7 @@ def test_unsure_user_is_not_called_off_topic(engine: ChatEngine) -> None:
 
 
 def test_hindi_script_gets_a_clear_note(engine: ChatEngine) -> None:
-    state, r = play(engine, "मुझे जापान जाना है")
+    state, r = play(engine, "क्या हाल है")  # "how are you": nothing about a trip
     assert r[1].text.startswith(T.HINDI_SCRIPT)
     assert state.form == TripForm()
 
@@ -217,3 +217,51 @@ def test_who_buttons_offer_me_not_you(engine: ChatEngine, real_tree: LoadedTree)
     assert labels[:2] == ["Just me", "+ Me"]
     form = TripForm(travellers=(Traveller(relation="self"),))
     assert "+ Me" not in [b.label for b in T.who_buttons(form, real_tree)]
+
+
+# ----------------------------------------------------------------- second manual session
+
+
+def test_second_manual_session_friends(engine: ChatEngine) -> None:
+    state, r = play(
+        engine,
+        "ok so i am going uk with my 2 friend one of which is a lawyer",
+        "1",
+        "salaried",
+        "retired",
+    )
+    assert r[3].text.startswith("What does your friend or colleague #2 do?")
+    assert people(state) == [
+        ("self", "employed", None),
+        ("friend_colleague", "self_employed_professional", None),
+        ("friend_colleague", "retired", None),
+    ]
+    assert state.stage == "confirming"
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "going to dubai with 2 friends, one of them is a doctor "
+        "and the other is a student, holiday",
+        "2 dost ke saath dubai ghumne, unme se ek doctor hai aur dusra student",
+    ],
+)
+def test_one_of_them_and_the_other(engine: ChatEngine, message: str) -> None:
+    state, r = play(engine, message)
+    assert people(state) == [
+        ("friend_colleague", "self_employed_professional", None),
+        ("friend_colleague", "university_student", None),
+        ("self", None, None),  # "with ..." / "... ke saath": the speaker travels too
+    ]
+    assert r[-1].text.startswith("What do you do?")
+
+
+def test_with_does_not_add_you_when_someone_else_leads(engine: ChatEngine) -> None:
+    state, _ = play(engine, "my mom is going to london with my dad for holiday")
+    assert [t.relation for t in state.form.travellers] == ["mother", "father"]
+
+
+def test_one_of_them_with_nobody_plural_is_not_guessed(engine: ChatEngine) -> None:
+    state, _ = play(engine, "Japan tourism, one of them is a lawyer")
+    assert all(t.profession != "self_employed_professional" for t in state.form.travellers)

@@ -60,15 +60,20 @@ class Meta(_Strict):
     site_url: Annotated[str, StringConstraints(pattern=r"^https://[a-z0-9.-]+$")] | None = None
 
 
+Iso2 = Annotated[str, StringConstraints(pattern=r"^[A-Z]{2}$")]
+
+
 class Country(_Strict):
     name: Label
     last_reviewed: date | None = None
+    iso2: Iso2 | None = None  # ISO 3166 code; links open data (cities, names) to this id
 
 
 class OtherCountry(_Strict):
     """A country the website covers but the bot has no checklist for yet."""
 
     name: Label
+    iso2: Iso2 | None = None
 
 
 class Labelled(_Strict):
@@ -140,6 +145,16 @@ class VisaTree(_Strict):
             for c in self.other_countries
             if c in self.countries
         ]
+        codes: dict[str, str] = {}
+        listed: list[tuple[str, Country | OtherCountry]] = [
+            *self.countries.items(),
+            *self.other_countries.items(),
+        ]
+        for cid, c in listed:
+            if c.iso2 is not None:
+                if c.iso2 in codes:
+                    errors.append(f"{cid}: iso2 {c.iso2} already used by {codes[c.iso2]}")
+                codes[c.iso2] = cid
         errors += self._check_groups()
         errors += self._check_age_bands()
         errors += self._check_rules()

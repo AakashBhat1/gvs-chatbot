@@ -16,3 +16,9 @@ def default_lexicon_path() -> Path:
     """``$GVS_LEXICON_PATH`` if set, else ``backend/data/lexicon.toml``."""
     override = os.environ.get("GVS_LEXICON_PATH")
     return Path(override) if override else _DATA / "lexicon.toml"
+
+
+def default_generated_path() -> Path:
+    """``$GVS_GENERATED_LEXICON_PATH`` if set, else ``backend/data/generated/lexicon.json``."""
+    override = os.environ.get("GVS_GENERATED_LEXICON_PATH")
+    return Path(override) if override else _DATA / "generated" / "lexicon.json"

@@ -188,6 +188,7 @@ tourism = [
     "tourism", "tourist", "tour", "holiday", "holidays", "vacation", "vacations", "sightseeing",
     "honeymoon", "leisure", "ghumne", "ghoomne", "ghumna", "ghoomna", "ghumane", "ghoomane",
     "tourist visa", "family trip", "family holiday", "pleasure",
+    "घूमने", "घूमना", "टूरिज़्म", "छुट्टी", "छुट्टियाँ", "हॉलिडे",
 ]
 family_visit = [
     "visiting family", "visit family", "family visit", "visiting relatives", "visit relatives",
@@ -201,6 +202,7 @@ business = [
     "business purpose", "business tour", "business ke liye", "conference", "meeting", "meetings",
     "expo", "trade fair", "exhibition", "work trip", "official trip", "client meeting",
     "office trip", "business visa", "seminar", "summit",
+    "मीटिंग", "कॉन्फ्रेंस",
 ]
 
 [professions]
@@ -209,34 +211,38 @@ employed = [
     "engineer", "software engineer", "developer", "manager", "teacher", "nurse", "banker",
     "accountant", "analyst", "executive", "corporate", "working professional", "work in",
     "works in", "work at", "works at", "mnc", "professor", "it professional", "in it",
+    "नौकरी", "जॉब", "सर्विस", "इंजीनियर", "टीचर", "मैनेजर", "प्राइवेट जॉब", "कंपनी में",
 ]
 government_employee = [
     "government", "govt", "government employee", "govt employee", "government job", "govt job",
     "sarkari", "sarkari naukri", "psu", "civil servant", "ias", "ips", "railway", "railways",
     "government teacher", "govt teacher", "government doctor", "govt doctor", "bank po",
+    "सरकारी", "सरकारी नौकरी", "गवर्नमेंट",
 ]
-defence_personnel = ["army", "navy", "air force", "airforce", "defence", "defense", "military", "fauji", "armed forces", "soldier"]
+defence_personnel = ["army", "navy", "air force", "airforce", "defence", "defense", "military", "fauji", "armed forces", "soldier", "आर्मी", "फौज", "फ़ौज", "फ़ौजी", "फौजी", "नेवी", "एयर फोर्स"]
 self_employed_professional = [
     "doctor", "doctors", "dr", "lawyer", "lawyers", "advocate", "ca", "chartered accountant",
     "architect", "dentist", "physician", "surgeon", "self employed", "self-employed",
     "own practice", "clinic",
+    "डॉक्टर", "वकील", "सीए",
 ]
 business_owner = [
     "businessman", "businesswoman", "business owner", "own business", "apna business",
     "my business", "have a business", "has a business", "run a business", "runs a business",
     "do business", "does business", "business karta", "business karti", "business karte",
     "proprietor", "shop", "shopkeeper", "dukaan", "dukan", "trader", "vyapar", "vyapari",
+    "बिज़नेस", "बिजनेस", "व्यापार", "व्यापारी", "दुकान", "दुकानदार",
 ]
 company_director = ["director", "company director", "business partner", "partner in", "founder", "co-founder", "ceo", "md", "managing director"]
 freelancer = ["freelancer", "freelance", "freelancing", "consultant", "contractor"]
 farmer = ["farmer", "farming", "kisan", "kheti", "agriculture", "agriculturist", "zamindar"]
 landlord_investor = ["landlord", "rental income", "rent income", "investor", "investments", "lives on rent"]
 seafarer = ["seafarer", "sailor", "merchant navy", "mariner", "on a ship"]
-retired = ["retired", "retire", "retd", "pensioner", "pension", "retirement"]
-homemaker = ["homemaker", "home maker", "housewife", "house wife", "househusband", "grihini", "ghar par", "ghar pe", "stays at home", "stay at home", "stay at home mom"]
+retired = ["retired", "retire", "retd", "pensioner", "pension", "retirement", "रिटायर्ड", "रिटायर", "सेवानिवृत्त", "पेंशन"]
+homemaker = ["homemaker", "home maker", "housewife", "house wife", "househusband", "grihini", "ghar par", "ghar pe", "stays at home", "stay at home", "stay at home mom", "गृहिणी", "हाउसवाइफ"]
 unemployed = ["unemployed", "not working", "no job", "jobless", "between jobs", "berozgar", "job nahi", "kaam nahi"]
-university_student = ["student", "students", "college", "university", "uni", "btech", "mba", "mbbs", "phd", "masters", "graduation", "engineering student", "college student", "padhai", "studying", "studies"]
-school_student = ["school", "school student", "schoolgoing", "school going", "in school", "class", "kindergarten", "kg", "nursery"]
+university_student = ["student", "students", "college", "university", "uni", "btech", "mba", "mbbs", "phd", "masters", "graduation", "engineering student", "college student", "padhai", "studying", "studies", "स्टूडेंट", "छात्र", "कॉलेज", "पढ़ाई"]
+school_student = ["school", "school student", "schoolgoing", "school going", "in school", "class", "kindergarten", "kg", "nursery", "स्कूल"]
 infant = ["baby", "infant", "toddler", "newborn", "new born"]
 other = ["other", "something else", "kuch aur"]
 
@@ -254,7 +260,7 @@ friend_colleague = ["friend", "friends", "dost", "colleague", "colleagues", "cow
 
 [markers]
 # Words that change meaning, not values. Each list is a role used by app/brains/rules.py.
-we = ["we", "we're", "hum", "hum log", "humlog", "hamlog", "our", "us all", "all of us", "whole family"]
+we = ["we", "we're", "hum", "hum log", "humlog", "hamlog", "ham", "ham log", "our", "us all", "all of us", "whole family"]
 couple = ["couple", "a couple"]
 parents = ["parents", "mom and dad", "mum and dad", "mummy papa", "mummy-papa", "maa papa", "maa baap", "mata pita", "mata-pita", "in-laws", "in laws", "mummy daddy"]
 two_of_us = ["hum dono", "we both", "both of us", "the two of us", "we two"]
@@ -287,6 +293,15 @@ office_question = [
     "how long", "kitne din", "appointment", "slot", "status", "track", "tracking", "refund",
     "interview", "biometric", "biometrics", "payment", "contact", "phone number", "address",
     "office", "timing", "timings", "urgent", "express", "rejected", "rejection",
+]
+# "2 friends, one of them is a lawyer, the other a student": single out one person.
+one_of = [
+    "one of which", "one of them", "one of whom", "one of these", "one of those", "one is",
+    "unme se ek", "unmein se ek", "inme se ek", "inmein se ek", "ek toh", "ek to",
+]
+other_of = [
+    "the other one", "the other", "other one", "another one", "the second", "second one",
+    "dusra", "doosra", "dusri", "doosri", "dusre", "doosre",
 ]
 # "that's all": nobody else is coming.
 no_more = [

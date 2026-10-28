@@ -25,6 +25,7 @@ from app.brains import BrainResult
 from app.brains.lexicon import Lexicon
 from app.extraction import MAX_COUNT, Context, Extraction, Intent, TravellerPatch
 from app.form import MAX_TRAVELLERS
+from app.hindi import romanize
 from app.text import has_devanagari, tokenize
 
 HARD_SEPARATORS: Final = frozenset({".", ";", "!", "?"})
@@ -37,8 +38,21 @@ PRONOUN_EXCLUDES: Final = {
     "she": frozenset({"father", "son"}),
     "he": frozenset({"mother", "daughter"}),
 }
+WITH_BEFORE: Final = frozenset({"with"})  # "with my friends": "along with" ends in "with" too
+WITH_AFTER: Final = frozenset({"saath", "sath"})  # "dost ke saath"
 PERSON_KINDS: Final = frozenset(
-    {"relation", "we", "solo", "couple", "parents", "two_of_us", "pronoun", "with_others"}
+    {
+        "relation",
+        "we",
+        "solo",
+        "couple",
+        "parents",
+        "two_of_us",
+        "pronoun",
+        "with_others",
+        "one_of",
+        "other_of",
+    }
 )
 
 
@@ -85,6 +99,7 @@ class _Parse:
     slots: list[Slot] = field(default_factory=list)
     mentions: list[Mention] = field(default_factory=list)
     count: int | None = None
+    singled: set[int] = field(default_factory=set)  # slots picked by "one of them"
     adults: int | None = None  # "two adults and one child" -> adults + children
     country: str | None = None
     purpose: str | None = None
@@ -105,9 +120,10 @@ class RulesBrain:
     # ------------------------------------------------------------------ public
 
     def understand(self, message: str, ctx: Context) -> BrainResult:
-        p = _Parse(self._scan(tokenize(message)))
+        p = _Parse(self._scan([self._from_script(t) for t in tokenize(message)]))
         self._mark_boundaries(p)
         self._make_mentions(p, ctx)
+        self._speaker_goes_with(p)
         self._numbers(p, ctx)
         self._professions(p, ctx)
         self._places_and_purposes(p, ctx)
@@ -120,6 +136,20 @@ class RulesBrain:
         return BrainResult(extraction=extraction, confident=confident, brain=self.name)
 
     # ------------------------------------------------------------------ scanning
+
+    def _from_script(self, token: str) -> str:
+        """Hindi-script word -> the Hinglish spelling the lexicon knows (जापान -> japan).
+
+        Words that appear in Hindi-script aliases are kept as they are, so exact
+        matches (दुबई, संयुक्त अरब अमीरात) win over transliteration.
+        """
+        if token in self.lex.script_words or not has_devanagari(token):
+            return token
+        spellings = romanize(token)
+        for spelling in spellings:
+            if (spelling,) in self.lex.phrases or spelling in self.lex.numbers:
+                return spelling
+        return spellings[-1] if spellings else token
 
     def _scan(self, tokens: list[str]) -> list[Span]:
         lex = self.lex
@@ -221,7 +251,8 @@ class RulesBrain:
                 p.slots.append(Slot(relation=s.value, host=True))
                 p.mentions.append(Mention(k, slots, s.value, group=-1))
                 return False
-            if s.text in self.lex.plural_relations:
+            counted = prev is not None and prev.kind == "number" and 2 <= int(prev.value) <= 8
+            if s.text in self.lex.plural_relations or counted:  # "kids", "2 friend"
                 n = None
                 if prev is not None and prev.kind == "number" and 1 <= int(prev.value) <= 8:
                     n = int(prev.value)
@@ -244,6 +275,8 @@ class RulesBrain:
             elif s.kind == "two_of_us":
                 p.count = 2
             return True
+        if s.kind in ("one_of", "other_of"):
+            return self._single_out(p, k, group)
         if s.kind == "parents":
             slots = self._reuse_or_new(p, "mother") + self._reuse_or_new(p, "father")
             p.mentions.append(Mention(k, slots, "parents", group=group))
@@ -289,6 +322,34 @@ class RulesBrain:
             pool = pool[::-1]
         ruled_out = PRONOUN_EXCLUDES.get(s.tokens[0], frozenset())
         return [i for i in pool if travellers[i].relation not in ruled_out] or pool
+
+    def _speaker_goes_with(self, p: _Parse) -> None:
+        """'going to Dubai with 2 friends' / '2 dost ke saath': the speaker travels too."""
+        people = [m for m in p.mentions if m.group != -1 and m.pos >= 0]
+        if not people or any(p.slots[i].relation == "self" for m in people for i in m.slots):
+            return
+        first = people[0].pos
+        before = _prev_meaningful(p.spans, first)
+        if before is not None and before.kind == "number":  # "with 2 friends"
+            before = _prev_meaningful(p.spans, first - 1)
+        after = p.spans[first + 1] if first + 1 < len(p.spans) else None
+        led_by_with = before is not None and before.tokens[-1] in WITH_BEFORE
+        followed_by_saath = after is not None and after.tokens[-1] in WITH_AFTER
+        if led_by_with or followed_by_saath:
+            self._self_slot(p)
+
+    def _single_out(self, p: _Parse, k: int, group: int) -> bool:
+        """'2 friends, one of them is a lawyer, the other a student': pick one person each."""
+        for m in reversed(p.mentions):
+            if len(m.slots) > 1:
+                free = [i for i in m.slots if i not in p.singled]
+                if free:
+                    p.singled.add(free[0])
+                    p.mentions.append(Mention(k, [free[0]], m.relation, group=group))
+                    return True
+        p.mentions.append(Mention(k, [], "unknown", group=group))  # nobody to single out
+        p.ambiguous += 1
+        return True
 
     def _reuse_or_new(self, p: _Parse, relation: str) -> list[int]:
         """A second mention of the same singular relation is the same person."""
@@ -403,6 +464,17 @@ class RulesBrain:
             last_age_mention = target
 
     @staticmethod
+    def _trip_details(p: _Parse) -> int:
+        people = any(not sl.host for sl in p.slots)
+        return sum(bool(x) for x in (p.country, p.purpose, p.other_country, people))
+
+    @staticmethod
+    def _has_unknown(p: _Parse) -> bool:
+        """'how does my phone compare to other phones': unknown words around a lone
+        profession word mean it isn't someone saying their job."""
+        return any(s.kind == "unknown" for s in p.spans)
+
+    @staticmethod
     def _negated(p: _Parse, k: int) -> bool:
         """'not tourism', 'no 8': the value right after a negation is being ruled out."""
         prev = _prev_meaningful(p.spans, k)
@@ -483,7 +555,7 @@ class RulesBrain:
             lacking = [i for i, t in enumerate(ctx.form.travellers) if t.profession is None]
             if len(lacking) == 1:
                 targets = (lacking[0],)
-            elif not ctx.form.travellers and not p.mentions:
+            elif not ctx.form.travellers and not p.mentions and not self._has_unknown(p):
                 me = self._self_slot(p)[0]
                 p.mentions.append(Mention(-1, [me], "self"))
                 p.slots[me].profession = str(value)
@@ -559,8 +631,10 @@ class RulesBrain:
         kinds = {s.kind for s in p.spans}
         if "restart" in kinds:
             return Extraction(intent="restart")
-        if "off_topic" in kinds and not (p.country or p.purpose or p.other_country):
-            return Extraction(on_topic=False)  # real trip details outweigh a stray cue word
+        if "off_topic" in kinds and self._trip_details(p) < 2:
+            # "translate this to French", "capital of France": one place name next to an
+            # off-topic word is not a trip. "ignore that. Japan tourism, just me" still is.
+            return Extraction(on_topic=False)
 
         patches = tuple(
             TravellerPatch(

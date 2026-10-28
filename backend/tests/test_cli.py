@@ -186,6 +186,7 @@ def test_default_tree_path_env_override(
     lexicon.write_text('[countries]\njp = ["japan"]\n', encoding="utf-8")
     monkeypatch.setenv("GVS_TREE_PATH", str(tree_path))
     monkeypatch.setenv("GVS_LEXICON_PATH", str(lexicon))
+    monkeypatch.setenv("GVS_GENERATED_LEXICON_PATH", str(tree_path.with_name("none.json")))
     assert check_tree.main(["--release"], today=TODAY) == 0
 
 
