@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+build/
+dist/
+
+# Node (widget, Phase 3)
+node_modules/
+.pnpm-store/
+
+# Secrets — only the example file is committed
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Runtime data
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+logs/
+backups/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
