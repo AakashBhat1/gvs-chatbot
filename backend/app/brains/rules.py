@@ -38,6 +38,8 @@ PRONOUN_EXCLUDES: Final = {
     "she": frozenset({"father", "son"}),
     "he": frozenset({"mother", "daughter"}),
 }
+# "alone" after someone else is named is about them; "just me" is always the writer.
+GOES_ALONE: Final = frozenset({"alone", "akela", "akeli", "akele", "solo"})
 WITH_BEFORE: Final = frozenset({"with"})  # "with my friends": "along with" ends in "with" too
 WITH_AFTER: Final = frozenset({"saath", "sath"})  # "dost ke saath"
 PERSON_KINDS: Final = frozenset(
@@ -242,6 +244,8 @@ class RulesBrain:
                 last_kind = s.kind
 
     def _mention_for(self, p: _Parse, k: int, s: Span, group: int, ctx: Context) -> bool:
+        if self._not_a_new_person(p, k, s):
+            return False
         if s.kind == "relation":
             if s.value == "self":
                 slots = self._self_slot(p)
@@ -325,6 +329,39 @@ class RulesBrain:
             pool = pool[::-1]
         ruled_out = PRONOUN_EXCLUDES.get(s.tokens[0], frozenset())
         return [i for i in pool if travellers[i].relation not in ruled_out] or pool
+
+    def _not_a_new_person(self, p: _Parse, k: int, s: Span) -> bool:
+        """Words that look like people but aren't more of them. Marks them used."""
+        if s.kind == "solo" and s.text in GOES_ALONE and self._someone_else_named(p):
+            s.used = True  # "my son is going alone": he goes alone, the writer stays
+            return True
+        prev = _prev_meaningful(p.spans, k)
+        if (
+            s.kind == "relation"
+            and prev is not None
+            and prev.kind == "number"
+            and 2 <= int(prev.value) <= MAX_TRAVELLERS
+            and self._is_group_total(p, k)
+        ):
+            # "a group of 5 colleagues": 5 is everyone going, not 5 more people
+            prev.used = s.used = True
+            p.count = int(prev.value)
+            return True
+        return False
+
+    @staticmethod
+    def _someone_else_named(p: _Parse) -> bool:
+        return any(m.relation != "self" and m.group != -1 for m in p.mentions)
+
+    def _is_group_total(self, p: _Parse, k: int) -> bool:
+        """'group of 5 colleagues', 'family of 4 friends': the number counts everyone."""
+        j = k - 1
+        while j >= 0 and p.spans[j].kind == "filler":
+            j -= 1  # the number
+        j -= 1
+        while j >= 0 and p.spans[j].kind == "filler":
+            j -= 1
+        return j >= 0 and p.spans[j].kind == "count_of"
 
     def _speaker_goes_with(self, p: _Parse) -> None:
         """'going to Dubai with 2 friends' / '2 dost ke saath': the speaker travels too."""

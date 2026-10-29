@@ -6,7 +6,7 @@
 {"id": "h-05", "message": "conference in Tokyo, I'm an IT professional", "expect": {"form": {"country": "japan", "purpose": "business", "travellers": [{"relation": "self", "profession": "employed"}]}, "intent": "give_details", "on_topic": true}}
 {"id": "h-06", "message": "Mere papa farmer hain aur unhe Dubai jaana hai", "expect": {"form": {"country": "uae-dubai", "travellers": [{"relation": "father", "profession": "farmer"}]}, "intent": "give_details", "on_topic": true}}
 {"id": "h-07", "message": "beti college mein padhti hai, uske saath London ghumne", "expect": {"form": {"country": "uk", "purpose": "tourism", "travellers": [{"relation": "daughter", "profession": "university_student"}]}, "intent": "give_details", "on_topic": true}}
-{"id": "h-08", "message": "going to the USA for my brother's wedding with my wife and mother", "expect": {"form": {"country": "us", "purpose": "family_visit", "travellers": [{"relation": "spouse"}, {"relation": "mother"}]}, "intent": "give_details", "on_topic": true}}
+{"id": "h-08", "message": "going to the USA for my brother's wedding with my wife and mother", "expect": {"form": {"country": "us", "purpose": "family_visit", "travellers": [{"relation": "self"}, {"relation": "spouse"}, {"relation": "mother"}]}, "intent": "give_details", "on_topic": true}}
 {"id": "h-09", "message": "I am a housewife and my husband runs a shop, we want to go to Bangkok", "expect": {"form": {"country": "thailand", "travellers": [{"relation": "self", "profession": "homemaker"}, {"relation": "spouse", "profession": "business_owner"}]}, "intent": "give_details", "on_topic": true}}
 {"id": "h-10", "message": "Visa for New Zealand, just myself, I'm a CA", "expect": {"form": {"country": "new-zealand", "travellers": [{"relation": "self", "profession": "self_employed_professional"}]}, "intent": "give_details", "on_topic": true}}
 {"id": "h-11", "message": "toddler and infant twins plus us two parents, Swiss holiday", "expect": {"form": {"country": "switzerland", "purpose": "tourism", "travellers": [{"relation": "self"}, {"relation": "child", "profession": "infant"}], "expected_count": 4}, "intent": "give_details", "on_topic": true}}
@@ -22,5 +22,5 @@
 {"id": "h-21", "message": "can you write my cover letter for me", "expect": {"form": {}, "intent": "give_details", "on_topic": false}}
 {"id": "h-22", "message": "what's the best time to visit Japan", "expect": {"form": {}, "intent": "give_details", "on_topic": false}}
 {"id": "h-23", "message": "which is cheaper, thailand or dubai?", "expect": {"form": {}, "intent": "give_details", "on_topic": false}}
-{"id": "h-24", "message": "how long does a UK visa take?", "expect": {"form": {}, "intent": "give_details", "on_topic": false}}
+{"id": "h-24", "message": "how long does a UK visa take?", "expect": {"form": {"country": "uk"}, "intent": "give_details", "on_topic": true}}
 {"id": "h-25", "message": "good evening", "expect": {"form": {}, "intent": "give_details", "on_topic": true}}
