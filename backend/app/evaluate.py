@@ -153,12 +153,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("--runs", type=int, default=1, help="repeat runs (for model brains)")
     p.add_argument("--min-exact", type=float, default=0.0, help="fail below this exact rate")
     p.add_argument("--show", type=int, default=20, help="how many failures to print")
+    p.add_argument("--solo", action="store_true", help="score the brains without rules first")
     args = p.parse_args(argv)
 
     tree = load_tree(default_tree_path())
     lexicon = load_lexicon(default_lexicon_path(), tree)
-    names = brain_names(args.brains)
-    brain = build_cascade(lexicon, names)
+    names = brain_names(args.brains, with_rules=not args.solo)
+    brain = build_cascade(lexicon, names, tree=lambda: tree)
     cases = load_cases(args.case_set)
 
     outcomes = [run_case(brain, c, tree) for _ in range(max(1, args.runs)) for c in cases]

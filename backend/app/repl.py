@@ -7,6 +7,7 @@ form (what would be saved), ``/quit`` exits.
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from collections.abc import Sequence
 
@@ -29,12 +30,16 @@ def _show(reply: BotReply) -> None:
 def main(argv: Sequence[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="gvs-chat", description="Chat with the bot in a terminal.")
     p.add_argument("--brains", default=None, help="e.g. rules (default from $GVS_BRAINS)")
+    p.add_argument("-v", "--verbose", action="store_true", help="show which brain answered")
     args = p.parse_args(argv)
+    if args.verbose:  # logs ids, timings and brain names; never the messages
+        logging.basicConfig(level=logging.INFO, format="     [%(name)s] %(message)s")
 
     store = TreeStore(default_tree_path())
     lexicon = load_lexicon(default_lexicon_path(), store.get())
     names = brain_names(args.brains)
-    engine = ChatEngine(store.get, build_cascade(lexicon, names), ask_age_for=lexicon.ask_age_for)
+    cascade = build_cascade(lexicon, names, tree=store.get)
+    engine = ChatEngine(store.get, cascade, ask_age_for=lexicon.ask_age_for)
     print(f"brains: {' -> '.join(names)}   (/state, /quit)")
 
     state, reply = engine.start()

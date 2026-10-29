@@ -12,6 +12,7 @@ gvs-resolve = "app.cli:main"
 gvs-check-tree = "app.check_tree:main"
 gvs-chat = "app.repl:main"
 gvs-eval = "app.evaluate:main"
+gvs-local-check = "app.local_check:main"
 
 [dependency-groups]
 build = [
@@ -66,6 +67,7 @@ known-first-party = ["app"]
 "app/check_tree.py" = ["T201"]
 "app/repl.py" = ["T201"]
 "app/evaluate.py" = ["T201"]
+"app/local_check.py" = ["T201"]
 # Build-time CLI: prints progress, imports its build-only dependency lazily, data tables.
 "tools/**" = ["T201", "PLC0415", "SIM905", "E501"]
 
