@@ -13,6 +13,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
+from app.brains.combine import Combine, rules_precede
 from app.extraction import Context, Extraction
 
 log = logging.getLogger(__name__)
@@ -42,49 +43,36 @@ class Cascade:
     used, since later brains are the more capable ones. At least one brain
     must never raise :class:`BrainUnavailable` (the rules brain).
 
-    A later brain's answer keeps the destination and purpose an earlier brain
-    found when it left them out: the rules read place names and purpose words
-    reliably even when they are unsure about the rest of the message.
+    A later brain's answer is merged with the first answer by ``combine``
+    (see :mod:`app.brains.combine`): by default the rules' precise readings
+    win and the model fills in the rest.
     """
 
     name = "cascade"
 
-    def __init__(self, brains: Sequence[Brain]) -> None:
+    def __init__(self, brains: Sequence[Brain], combine: Combine | None = None) -> None:
         if not brains:
             raise ValueError("cascade needs at least one brain")
         self.brains = tuple(brains)
+        self.combine = combine or rules_precede
 
     def understand(self, message: str, ctx: Context) -> BrainResult:
         best: BrainResult | None = None
+        first: BrainResult | None = None  # the cheapest brain's answer is the anchor
         for brain in self.brains:
             try:
                 result = brain.understand(message, ctx)
             except BrainUnavailable as exc:
                 log.warning("brain %s unavailable: %s", brain.name, exc)
                 continue
-            if best is not None:
-                result = _keep_trip(result, best)
+            if first is None:
+                first = result
+            else:
+                merged = self.combine(first.extraction, result.extraction)
+                result = BrainResult(merged, result.confident, result.brain)
             if result.confident:
                 return result
             best = result
         if best is None:
             raise BrainUnavailable("no brain could answer")
         return best
-
-
-def _keep_trip(result: BrainResult, earlier: BrainResult) -> BrainResult:
-    """Fill the later answer's missing country / purpose from the earlier one."""
-    ex, prev = result.extraction, earlier.extraction
-    if not ex.on_topic or ex.intent == "restart":
-        return result
-    update: dict[str, object] = {}
-    if ex.country is None and ex.other_country is None:
-        if prev.country is not None:
-            update["country"] = prev.country
-        elif prev.other_country is not None:
-            update["other_country"] = prev.other_country
-    if ex.purpose is None and not ex.purpose_choices and prev.purpose is not None:
-        update["purpose"] = prev.purpose
-    if not update:
-        return result
-    return BrainResult(ex.model_copy(update=update), result.confident, result.brain)

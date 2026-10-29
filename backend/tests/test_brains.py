@@ -6,7 +6,8 @@ import pytest
 
 from app import evaluate, repl
 from app.brains import BrainResult, BrainUnavailable, Cascade
-from app.brains.factory import UnknownBrain, brain_names, build_cascade
+from app.brains.combine import fill_blanks, rules_precede
+from app.brains.factory import UnknownBrain, brain_names, build_cascade, combiner
 from app.brains.lexicon import LexiconError, load_lexicon, parse_lexicon
 from app.extraction import Context, Extraction, sanitize
 from app.form import TripForm
@@ -47,8 +48,10 @@ def test_cascade_stops_at_first_confident() -> None:
 
 def test_cascade_escalates_and_prefers_later_brain() -> None:
     a, b = Fake("a", confident=False, country="uk"), Fake("b", confident=False, country="japan")
-    result = Cascade([a, b]).understand("x", CTX)
+    result = Cascade([a, b], combine=fill_blanks).understand("x", CTX)
     assert (result.brain, result.extraction.country) == ("b", "japan")
+    # by default the first brain's precise reading (the place) wins
+    assert Cascade([a, b]).understand("x", CTX).extraction.country == "uk"
 
 
 def test_cascade_falls_back_when_smart_brain_down() -> None:
@@ -248,7 +251,7 @@ class Fixed:
 def test_later_brain_keeps_country_and_purpose_it_left_out() -> None:
     rules = Fixed("rules", _ex(country="canada", purpose="family_visit"), False)
     model = Fixed("local", _ex(travellers=[{"relation": "mother"}]), True)
-    ex = Cascade([rules, model]).understand("x", CTX).extraction
+    ex = Cascade([rules, model], combine=fill_blanks).understand("x", CTX).extraction
     assert (ex.country, ex.purpose) == ("canada", "family_visit")
     assert [p.relation for p in ex.travellers] == ["mother"]
 
@@ -256,18 +259,127 @@ def test_later_brain_keeps_country_and_purpose_it_left_out() -> None:
 def test_later_brain_values_win_and_choices_block_purpose() -> None:
     rules = Fixed("rules", _ex(country="uk", purpose="tourism"), False)
     model = Fixed("local", _ex(country="japan", purpose_choices=["tourism", "business"]), True)
-    ex = Cascade([rules, model]).understand("x", CTX).extraction
+    ex = Cascade([rules, model], combine=fill_blanks).understand("x", CTX).extraction
     assert (ex.country, ex.purpose) == ("japan", None)
 
 
 def test_off_topic_or_restart_answers_are_not_filled() -> None:
     rules = Fixed("rules", _ex(country="uk", other_country=None), False)
     for later in (_ex(on_topic=False), _ex(intent="restart")):
-        ex = Cascade([rules, Fixed("local", later, True)]).understand("x", CTX).extraction
+        ex = (
+            Cascade([rules, Fixed("local", later, True)], combine=fill_blanks)
+            .understand("x", CTX)
+            .extraction
+        )
         assert ex.country is None
 
 
 def test_other_country_is_kept_too() -> None:
     rules = Fixed("rules", _ex(other_country="sri-lanka"), False)
-    ex = Cascade([rules, Fixed("local", _ex(), True)]).understand("x", CTX).extraction
+    ex = (
+        Cascade([rules, Fixed("local", _ex(), True)], combine=fill_blanks)
+        .understand("x", CTX)
+        .extraction
+    )
     assert ex.other_country == "sri-lanka"
+
+
+# ----------------------------------------------------------------- rules precede
+
+
+def _rel(ex: Extraction) -> list[tuple[int | None, str | None, str | None, int | None]]:
+    return [(p.ref, p.relation, p.profession, p.age) for p in ex.travellers]
+
+
+def test_rules_decide_who_model_decides_details() -> None:
+    # "i am a business owner wife is a school teacher": rules saw both, mixed up the jobs
+    rules = _ex(
+        travellers=[{"relation": "self"}, {"relation": "spouse", "profession": "business_owner"}]
+    )
+    model = _ex(
+        travellers=[
+            {"relation": "self", "profession": "business_owner"},
+            {"relation": "spouse", "profession": "employed"},
+        ]
+    )
+    assert _rel(rules_precede(rules, model)) == [
+        (None, "self", "business_owner", None),
+        (None, "spouse", "employed", None),
+    ]
+
+
+def test_model_inventions_are_dropped_and_omissions_added_back() -> None:
+    # "Going to Canada to visit my son, just me": the son is a host; the model forgot "me"
+    rules = _ex(country="canada", purpose="family_visit", travellers=[{"relation": "self"}])
+    model = _ex(country="canada", purpose="family_visit", travellers=[{"relation": "son"}])
+    assert _rel(rules_precede(rules, model)) == [(None, "self", None, None)]
+
+
+def test_model_details_fill_and_rules_details_fill_back() -> None:
+    rules = _ex(travellers=[{"relation": "daughter", "age": 3}, {"relation": "son"}])
+    model = _ex(
+        travellers=[
+            {"relation": "daughter", "profession": "infant"},
+            {"relation": "son", "profession": "infant"},
+        ]
+    )
+    assert _rel(rules_precede(rules, model)) == [
+        (None, "daughter", "infant", 3),
+        (None, "son", "infant", None),
+    ]
+
+
+def test_rules_place_purpose_count_and_intent_win() -> None:
+    rules = _ex(country="uk", purpose="business", traveller_count=3, intent="correct")
+    model = _ex(country="japan", purpose="tourism", traveller_count=4, intent="confirm")
+    ex = rules_precede(rules, model)
+    assert (ex.country, ex.purpose, ex.traveller_count, ex.intent) == (
+        "uk",
+        "business",
+        3,
+        "correct",
+    )
+
+
+def test_model_fills_what_rules_found_nothing_for() -> None:
+    rules = _ex()
+    model = _ex(country="japan", purpose="tourism", travellers=[{"relation": "self"}])
+    assert rules_precede(rules, model) == model
+
+
+def test_refs_merge_and_rules_only_refs_kept() -> None:
+    rules = _ex(travellers=[{"ref": 1, "remove": True}, {"ref": 0, "age": 40}])
+    model = _ex(travellers=[{"ref": 0, "profession": "employed"}])
+    assert _rel(rules_precede(rules, model)) == [(0, None, "employed", 40), (1, None, None, None)]
+    assert rules_precede(rules, model).travellers[1].remove
+
+
+def test_off_topic_is_the_models_call_unless_rules_saw_a_trip() -> None:
+    question = _ex(country="japan")  # "what's the best time to visit Japan"
+    assert not rules_precede(question, _ex(on_topic=False)).on_topic
+    trip = _ex(country="japan", travellers=[{"relation": "self"}])
+    assert rules_precede(trip, _ex(on_topic=False)).on_topic
+
+
+def test_restart_and_group_rules() -> None:
+    assert rules_precede(_ex(), _ex(intent="restart")).intent == "restart"
+    assert rules_precede(_ex(intent="restart"), _ex(country="uk")).intent == "restart"
+    listed = rules_precede(
+        _ex(travellers=[{"relation": "friend_colleague"}]), _ex(group_of="friend_colleague")
+    )
+    assert listed.group_of is None
+    assert rules_precede(_ex(group_of="child"), _ex()).group_of == "child"
+
+
+def test_choices_block_the_models_purpose_and_other_country_blocks_country() -> None:
+    rules = _ex(purpose_choices=["tourism", "business"], other_country="sri-lanka")
+    ex = rules_precede(rules, _ex(purpose="tourism", country="japan"))
+    assert (ex.purpose, ex.country, ex.other_country) == (None, None, "sri-lanka")
+
+
+def test_combine_setting(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert combiner("rules") is rules_precede and combiner("model") is fill_blanks
+    monkeypatch.setenv("GVS_COMBINE", "model")
+    assert combiner() is fill_blanks
+    with pytest.raises(UnknownBrain):
+        combiner("vote")

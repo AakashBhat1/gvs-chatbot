@@ -63,6 +63,7 @@ setx GVS_LOCAL_MODEL "qwen3:8b"
 | `GVS_LOCAL_TIMEOUT` | `20` | Seconds before giving up on the model (1st load can be slow). |
 | `GVS_LOCAL_THINK` | `false` | `false` for qwen3 / qwen3.5. `auto` for models without a thinking switch. |
 | `GVS_LOCAL_NUM_CTX` | `8192` | Context size. 8K fits a 9B model in 8 GB. |
+| `GVS_COMBINE` | `rules` | How the model's answer is merged. `rules`: the rules' precise readings (place, purpose, count, yes/no, who is named) win and the model decides jobs and ages. `model`: the model's answer as is. |
 | `GVS_LOCAL_KEEP_ALIVE` | `30m` | How long the model stays loaded after the last message. `-1` = always. |
 
 To try a setting for one terminal only: `$env:GVS_LOCAL_MODEL = "qwen3.5:9b"`.

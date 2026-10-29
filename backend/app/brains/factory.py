@@ -11,6 +11,7 @@ from collections.abc import Callable, Sequence
 from typing import Final
 
 from app.brains import Brain, Cascade
+from app.brains.combine import COMBINERS, Combine
 from app.brains.lexicon import Lexicon
 from app.brains.local import LocalBrain, load_hints
 from app.brains.rules import RulesBrain
@@ -59,4 +60,14 @@ def build_cascade(
         return store.get()
 
     getter = tree or default_tree
-    return Cascade([_BUILDERS[n](lexicon, getter) for n in (names or brain_names())])
+    brains = [_BUILDERS[n](lexicon, getter) for n in (names or brain_names())]
+    return Cascade(brains, combine=combiner())
+
+
+def combiner(setting: str | None = None) -> Combine:
+    """``GVS_COMBINE``: ``rules`` (default, the rules' precise readings win) or
+    ``model`` (the model's answer as is, rules only fill a missing place/purpose)."""
+    raw = (setting if setting is not None else os.environ.get("GVS_COMBINE", "rules")).strip()
+    if raw not in COMBINERS:
+        raise UnknownBrain(f"GVS_COMBINE must be one of {sorted(COMBINERS)}, got {raw!r}")
+    return COMBINERS[raw]
