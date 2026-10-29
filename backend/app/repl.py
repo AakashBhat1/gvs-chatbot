@@ -21,7 +21,7 @@ from app.tree import TreeStore
 def _show(reply: BotReply) -> None:
     print(f"\nbot> {reply.text.replace(chr(10), chr(10) + '     ')}")
     if reply.checklist is not None:
-        print("\n" + render(reply.checklist))
+        print("\n" + render(reply.checklist, disclaimer=False))
     for n, b in enumerate(reply.buttons, 1):
         print(f"     [{n}] {b.label}")
 

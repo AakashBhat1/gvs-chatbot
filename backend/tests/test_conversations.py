@@ -265,3 +265,77 @@ def test_with_does_not_add_you_when_someone_else_leads(engine: ChatEngine) -> No
 def test_one_of_them_with_nobody_plural_is_not_guessed(engine: ChatEngine) -> None:
     state, _ = play(engine, "Japan tourism, one of them is a lawyer")
     assert all(t.profession != "self_employed_professional" for t in state.form.travellers)
+
+
+# ----------------------------------------------------------------- third manual session
+
+
+def test_third_manual_session_with_my_friends(engine: ChatEngine) -> None:
+    """'with my friends' used to become one friend, with no question about how many."""
+    state, r = play(
+        engine,
+        "ok so i am going with my friends",
+        "1",  # United States
+        "1",  # Tourism
+        "2",  # two friends
+        "business",
+        "1",  # Same: Business owner
+        "1",  # Yes, show my checklist
+    )
+    assert r[1].text == T.ASK_COUNTRY
+    assert r[3].text == "How many of your friends or colleagues are travelling?"
+    assert [b.label for b in r[3].buttons] == [str(n) for n in range(1, 8)]
+    assert r[4].text.startswith("What do you and your 2 friends or colleagues do?")
+    assert r[5].text.startswith("What do your 2 friends or colleagues do?")
+    assert r[5].buttons[0].label == "Same: Business owner or proprietor"
+    assert state.stage == "done"
+    assert people(state) == [
+        ("self", "business_owner", None),
+        ("friend_colleague", "business_owner", None),
+        ("friend_colleague", "business_owner", None),
+    ]
+
+
+@pytest.mark.parametrize("answer", ["three", "3 friends", "3 dost"])
+def test_typed_group_size(engine: ChatEngine, answer: str) -> None:
+    state, _ = play(engine, "uk tourism with my friends", answer)
+    assert people(state) == [("self", None, None)] + [("friend_colleague", None, None)] * 3
+    assert state.form.pending_group is None
+
+
+@pytest.mark.parametrize("answer", ["that's all", "no one else, just me"])
+def test_group_size_none(engine: ChatEngine, answer: str) -> None:
+    state, r = play(engine, "uk tourism with my friends", answer)
+    assert people(state) == [("self", None, None)]
+    assert state.form.pending_group is None
+    assert r[-1].text.startswith("What do you do?")
+
+
+def test_kids_without_number_asks_how_many(engine: ChatEngine) -> None:
+    state, r = play(engine, "japan tourism, me and my kids", "2", "salaried", "5 and 8")
+    assert r[1].text == "How many of your children are travelling?"
+    assert people(state) == [("self", "employed", None), ("child", None, 5), ("child", None, 8)]
+
+
+def test_kids_with_ages_after_comma_need_no_question(engine: ChatEngine) -> None:
+    state, _ = play(engine, "japan tourism, me and my kids, 5 and 8")
+    assert people(state) == [("self", None, None), ("child", None, 5), ("child", None, 8)]
+    assert state.form.pending_group is None
+
+
+def test_two_jobs_for_three_people_answer_in_order(engine: ChatEngine) -> None:
+    state, r = play(engine, "uk tourism with my friends", "2", "business, both are students")
+    assert people(state) == [
+        ("self", "business_owner", None),
+        ("friend_colleague", "university_student", None),
+        ("friend_colleague", None, None),
+    ]
+    assert r[-1].text.startswith("What does your friend or colleague #2 do?")
+
+
+def test_who_else_says_who_is_in_so_far(engine: ChatEngine) -> None:
+    state, r = play(engine, "Japan tourism with my family")
+    assert r[1].text == T.ASK_WHO_WITH  # just you so far: nothing to list
+    friend = next(b for b in r[1].buttons if b.choice == "add:friend_colleague")
+    state, reply = engine.handle(state, choice=friend.choice)
+    assert reply.text == f"So far: you and your friend or colleague. {T.ASK_WHO_WITH}"

@@ -32,6 +32,9 @@ ASK_PURPOSE: Final = (
 ASK_WHO: Final = "Who's travelling? For example: just me, or me, my wife and son (8)."
 ASK_WHO_MORE: Final = "You mentioned {expected} travellers and I have {have}. Who else is going?"
 ASK_WHO_WITH: Final = "Who else is travelling with you? For example: my wife and son (8)."
+SO_FAR: Final = "So far: {people}."
+SAME: Final = "Same: {label}"
+ASK_GROUP_SIZE: Final = "How many of your {people} are travelling?"
 ASK_MAIN_PURPOSE: Final = "A visa is applied for one main purpose. Which is it: {options}?"
 HELP: Final = "I can make a document checklist for {countries}."
 HELP_MORE: Final = " Other countries are on our website: {site}/visa"
@@ -117,8 +120,7 @@ def _people(form: TripForm, indices: tuple[int, ...], tree: LoadedTree) -> tuple
             continue
         n = counts.pop(t.relation)  # each relation is named once, at its first position
         if n > 1:
-            label = tree.data.relations[t.relation].label.lower()
-            others.append(f"{n} {PLURALS.get(t.relation, label + 's')}")
+            others.append(f"{n} {_plural(t.relation, tree)}")
         else:
             others.append(person_name(form, i, tree).removeprefix("your "))
     parts = (["you"] if you else []) + ([f"your {_join(others)}"] if others else [])
@@ -136,10 +138,22 @@ def ask_age(form: TripForm, indices: tuple[int, ...], tree: LoadedTree) -> str:
     return f"How old {'are' if plural else 'is'} {who}?"
 
 
-def ask_more(form: TripForm) -> str:
-    if form.expected_count is None:
+def _plural(relation: str, tree: LoadedTree) -> str:
+    return PLURALS.get(relation, tree.data.relations[relation].label.lower() + "s")
+
+
+def ask_more(form: TripForm, tree: LoadedTree) -> str:
+    """'Who else...?', naming who is in so far once there's more than just you."""
+    if form.expected_count is not None:
+        return ASK_WHO_MORE.format(expected=form.expected_count, have=len(form.travellers))
+    if [t.relation for t in form.travellers] == ["self"]:
         return ASK_WHO_WITH
-    return ASK_WHO_MORE.format(expected=form.expected_count, have=len(form.travellers))
+    people, _ = _people(form, tuple(range(len(form.travellers))), tree)
+    return f"{SO_FAR.format(people=people)} {ASK_WHO_WITH}"
+
+
+def ask_group_size(relation: str, tree: LoadedTree) -> str:
+    return ASK_GROUP_SIZE.format(people=_plural(relation, tree))
 
 
 def ask_main_purpose(choices: tuple[str, ...], tree: LoadedTree) -> str:
@@ -233,6 +247,17 @@ def who_buttons(form: TripForm, tree: LoadedTree) -> tuple[Button, ...]:
     if form.travellers:
         buttons.append(Button(label="That's everyone", choice="everyone"))
     return tuple(buttons)
+
+
+def same_button(profession: str, tree: LoadedTree) -> Button:
+    """'Same: Business owner': give everyone still missing a job the one just given."""
+    label = tree.data.professions[profession].label
+    return Button(label=SAME.format(label=label), choice=f"same:{profession}")
+
+
+def group_size_buttons(room: int) -> tuple[Button, ...]:
+    """'1' .. '7': how many of the group are going, capped by the seats left."""
+    return tuple(Button(label=str(n), choice=f"group:{n}") for n in range(1, room + 1))
 
 
 def profession_buttons(index: int, tree: LoadedTree) -> tuple[Button, ...]:

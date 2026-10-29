@@ -7,7 +7,7 @@
 # For these relations the bot asks "How old is ...?" instead of "What does ... do?".
 ask_age_for = ["son", "daughter", "child"]
 # Relation aliases that mean more than one person ("2 kids", "kids aged 3 and 5").
-plural_relations = ["sons", "daughters", "kids", "children", "bachche", "bacche", "bachhe", "betiyan", "siblings", "grandparents", "friends", "colleagues"]
+plural_relations = ["sons", "daughters", "kids", "children", "bachche", "bacche", "bachhe", "betiyan", "siblings", "grandparents", "friends", "colleagues", "dosto", "doston"]
 
 [countries]
 us = ["usa", "america", "united states", "united states of america", "amrika", "amreeka", "new york", "california", "us visa"]
@@ -256,7 +256,7 @@ father = ["father", "dad", "daddy", "papa", "papaji", "pappu", "pappa", "pitaji"
 mother = ["mother", "mom", "mum", "mummy", "mummi", "mumy", "mumma", "mommy", "maa", "ma", "mammi", "ammi", "mata ji", "mataji", "mother-in-law", "mother in law", "saas"]
 sibling = ["brother", "sister", "bhai", "bhaiya", "behen", "behan", "didi", "sis", "bro", "siblings", "sibling"]
 grandparent = ["grandfather", "grandmother", "grandpa", "grandma", "granny", "dadi", "dada", "nana", "nani", "grandparents"]
-friend_colleague = ["friend", "friends", "dost", "colleague", "colleagues", "coworker", "co-worker"]
+friend_colleague = ["friend", "friends", "dost", "dosto", "doston", "colleague", "colleagues", "coworker", "co-worker"]
 
 [markers]
 # Words that change meaning, not values. Each list is a role used by app/brains/rules.py.
@@ -312,9 +312,9 @@ no_more = [
 # "with my family": more people are coming but weren't named yet.
 with_others = [
     "with family", "with my family", "with a family", "with the family", "with our family",
-    "family ke saath", "family ke sath", "parivar ke saath", "with friends", "with my friends",
-    "dosto ke saath", "with colleagues", "with others", "with some people",
+    "family ke saath", "family ke sath", "parivar ke saath", "with others", "with some people",
 ]
+# "with my friends" is not here: "friends" is a relation, so the bot asks how many.
 # Clear signs the message is not about a trip. Any of these makes the whole message off-topic.
 off_topic = [
     "joke", "jokes", "code", "coding", "python", "javascript", "script", "program",

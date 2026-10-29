@@ -369,3 +369,69 @@ def test_state_json_round_trip(engine: ChatEngine) -> None:
         "tree_version",
     }
     assert ChatState.model_validate(data) == state
+
+
+# ----------------------------------------------------------------- groups and "Same"
+
+
+def _pending_friends(engine: ChatEngine) -> ChatState:
+    state, _ = talk(engine, "uk tourism with my friends")
+    assert state.asked_field == "group_size"
+    assert state.form.pending_group == "friend_colleague"
+    return state
+
+
+@pytest.mark.parametrize("choice", ["group:0", "group:8", "group:x", "group:1:2", "same:pilot"])
+def test_forged_group_and_same_buttons_are_ignored(engine: ChatEngine, choice: str) -> None:
+    state = _pending_friends(engine)
+    new, _ = engine.handle(state, choice=choice)
+    assert new.form == state.form
+
+
+def test_group_button_without_pending_group_is_ignored(engine: ChatEngine) -> None:
+    state, _ = talk(engine, "Japan tourism")
+    new, _ = engine.handle(state, choice="group:3")
+    assert new.form == state.form
+
+
+def test_same_button_only_answers_a_profession_question(engine: ChatEngine) -> None:
+    state = _pending_friends(engine)
+    new, _ = engine.handle(state, choice="same:retired")
+    assert new.form == state.form
+
+
+def test_group_buttons_are_capped_by_seats_left(engine: ChatEngine) -> None:
+    state, reply = talk(engine, "uk tourism, me, my wife, 2 sons, 2 daughters and my colleagues")
+    assert len(state.form.travellers) == 6
+    assert choices(reply) == ["group:1", "group:2"]
+    state, _ = engine.handle(state, choice="group:2")
+    assert len(state.form.travellers) == 8
+    assert state.form.pending_group is None
+
+
+def test_everyone_button_clears_pending_group(engine: ChatEngine) -> None:
+    state = _pending_friends(engine)
+    state, _ = engine.handle(state, choice="everyone")
+    assert state.form.pending_group is None
+
+
+def test_merge_group_rules() -> None:
+    me = (Traveller(relation="self"),)
+    new, _ = merge(TripForm(travellers=me), _ex(group_of="friend_colleague"), overwrite=False)
+    assert new.pending_group == "friend_colleague"
+    # naming people of another relation keeps the question; naming the group settles it
+    spouse = _ex(travellers=[{"relation": "spouse"}])
+    assert merge(new, spouse, overwrite=False)[0].pending_group == "friend_colleague"
+    friend = _ex(travellers=[{"relation": "friend_colleague"}] * 2)
+    assert merge(new, friend, overwrite=False)[0].pending_group is None
+    assert merge(new, _ex(traveller_count=1), overwrite=False)[0].pending_group is None
+    full = TripForm(travellers=tuple(Traveller(relation="son") for _ in range(8)))
+    capped, overflow = merge(full, _ex(group_of="friend_colleague"), overwrite=False)
+    assert capped.pending_group is None and overflow
+
+
+def test_prune_drops_unknown_pending_group(
+    engine: ChatEngine, mini_dict: dict[str, Any], write_tree: Callable[[dict[str, Any]], Path]
+) -> None:
+    form = TripForm(travellers=(Traveller(relation="self"),), pending_group="no_such_relation")
+    assert prune(form, load_tree(write_tree(mini_dict))).pending_group is None

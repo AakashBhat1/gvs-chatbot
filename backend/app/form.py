@@ -39,6 +39,8 @@ class TripForm(BaseModel):
     expected_count: Annotated[StrictInt, Field(ge=1, le=MAX_TRAVELLERS)] | None = None
     # "with my family" before anyone else was named; cleared once someone is added.
     others_pending: bool = False
+    # "with my friends": a relation is coming but not how many; the bot asks next.
+    pending_group: Id | None = None
 
     def country_of(self, t: Traveller) -> str | None:
         return t.country or self.country
@@ -58,6 +60,7 @@ def unknown_ids(form: TripForm, tree: LoadedTree) -> list[str]:
 
     check(form.country, data.countries, "country")
     check(form.purpose, data.purposes, "purpose")
+    check(form.pending_group, data.relations, "pending_group")
     for i, t in enumerate(form.travellers):
         check(t.relation, data.relations, f"travellers[{i}].relation")
         check(t.profession, data.professions, f"travellers[{i}].profession")

@@ -19,7 +19,9 @@ from app.tree import Id, LoadedTree
 
 Intent = Literal["give_details", "confirm", "correct", "restart"]
 Stage = Literal["collecting", "confirming", "done"]
-AskedField = Literal["open", "country", "purpose", "travellers", "profession", "age", "confirm"]
+AskedField = Literal[
+    "open", "country", "purpose", "travellers", "group_size", "profession", "age", "confirm"
+]
 
 MAX_COUNT = 20  # "family of 12" must be reportable, so the bot can say it handles 8 per chat
 Index = Annotated[StrictInt, Field(ge=0, lt=MAX_TRAVELLERS)]
@@ -53,6 +55,8 @@ class Extraction(BaseModel):
     other_country: Id | None = None
     # "with my family": more people are coming who weren't named yet.
     others_coming: StrictBool = False
+    # "with my friends": people of this relation are coming, but not how many.
+    group_of: Id | None = None
     # "tourism and a conference": the user must pick one main purpose.
     purpose_choices: tuple[Id, ...] = Field(default=(), max_length=3)
     # Asked about fees, timelines, appointments: only the office can answer.
@@ -68,6 +72,7 @@ class Extraction(BaseModel):
             or self.traveller_count
             or self.travellers
             or self.others_coming
+            or self.group_of
             or self.purpose_choices
         )
 
@@ -120,6 +125,7 @@ def sanitize(ex: Extraction, tree: LoadedTree, n_travellers: int) -> Extraction:
         travellers=tuple(patches),
         other_country=keep(ex.other_country, d.other_countries),
         others_coming=ex.others_coming,
+        group_of=keep(ex.group_of, d.relations) if ex.group_of != "self" else None,
         purpose_choices=tuple(p for p in dict.fromkeys(ex.purpose_choices) if p in d.purposes),
         asks_office=ex.asks_office,
         asks_help=ex.asks_help,

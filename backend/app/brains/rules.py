@@ -82,6 +82,7 @@ class Slot:
     remove: bool = False
     host: bool = False
     from_plural: bool = False
+    group: bool = False  # "my friends" with no number: reported as group_of, not a person
 
 
 @dataclass(slots=True)
@@ -106,6 +107,7 @@ class _Parse:
     other_country: str | None = None
     purpose_choices: list[str] = field(default_factory=list)
     others_coming: bool = False
+    group_of: str | None = None
     conflict: bool = False
     unexplained: int = 0
     ambiguous: int = 0
@@ -128,6 +130,7 @@ class RulesBrain:
         self._professions(p, ctx)
         self._places_and_purposes(p, ctx)
         self._removals(p)
+        self._uncounted_groups(p, ctx)
         p.unexplained += sum(s.kind == "unknown" for s in p.spans)
         p.ambiguous += sum(s.fuzzy for s in p.spans)
 
@@ -447,7 +450,11 @@ class RulesBrain:
                 years, target = value, self._nearest(p, k)
             elif prev is not None and prev.kind in ("conj", "comma") and last_age_mention:
                 years, target = value, last_age_mention
+            elif (kids := self._plural_before_comma(p, k)) is not None:
+                years, target = value, kids  # "me and my kids, 5 and 8"
             if years is None:
+                if self._group_size(p, ctx, value):
+                    continue
                 years = value
                 if self._context_ref(p, ctx, "age", years):
                     continue
@@ -462,6 +469,46 @@ class RulesBrain:
                 continue
             self._assign_age(p, target, years)
             last_age_mention = target
+
+    def _plural_before_comma(self, p: _Parse, k: int) -> Mention | None:
+        """The uncounted 'kids' in 'my kids, 5 and 8', whose ages follow a comma."""
+        j = k - 1
+        while j >= 0 and p.spans[j].kind == "filler":
+            j -= 1
+        if j < 1 or p.spans[j].kind != "comma" or p.spans[j - 1].kind != "relation":
+            return None
+        m = self._mention_at(p, j - 1)
+        return m if m is not None and m.plural_pending else None
+
+    def _group_size(self, p: _Parse, ctx: Context, value: int) -> bool:
+        """'3' after 'How many of your friends are travelling?' adds three friends."""
+        group = ctx.form.pending_group
+        asked = ctx.asked is not None and ctx.asked.field == "group_size"
+        named = any(m.relation != "self" for m in p.mentions)
+        if not asked or group is None or named or not 1 <= value <= MAX_TRAVELLERS:
+            return False
+        self._new_slots(p, group, value, plural=True)
+        return True
+
+    def _uncounted_groups(self, p: _Parse, ctx: Context) -> None:
+        """'with my friends' / 'the kids': people are coming, but not how many.
+
+        One bare slot would silently become one person, so it is reported as
+        ``group_of`` instead and the bot asks for the number. Ages or jobs given
+        ("kids 5 and 8", "friends are students") keep the people as they are.
+        """
+        if p.count is not None:
+            return  # "6 of us, me and my friends": the count already says how many
+        known = {t.relation for t in ctx.form.travellers}
+        for m in p.mentions:
+            if not m.plural_pending or len(m.slots) != 1 or m.relation in known:
+                continue
+            slot = p.slots[m.slots[0]]
+            details = (slot.ref, slot.age, slot.profession, slot.country, slot.purpose)
+            if slot.remove or any(v is not None for v in details):
+                continue
+            slot.group = True
+            p.group_of = m.relation
 
     @staticmethod
     def _trip_details(p: _Parse) -> int:
@@ -545,8 +592,11 @@ class RulesBrain:
         targets: tuple[int, ...] = ()
         if asked is not None and asked.field == what and asked.travellers:
             taken = sum(1 for sl in p.slots if sl.ref is not None and getattr(sl, what) is not None)
-            if taken == 0 and any(s.kind == "plural" for s in p.spans):
-                targets = asked.travellers  # "both retired" / "dono retired"
+            # "both retired" / "dono retired". With two jobs ("business, both are
+            # students") they are answered in order instead of all getting the first.
+            single = what == "age" or self._single_job(p)
+            if taken == 0 and single and any(s.kind == "plural" for s in p.spans):
+                targets = asked.travellers
             elif taken < len(asked.travellers):
                 targets = (asked.travellers[taken],)
         if not targets and what == "profession":
@@ -572,6 +622,10 @@ class RulesBrain:
             else:
                 slot.profession = str(value)
         return True
+
+    @staticmethod
+    def _single_job(p: _Parse) -> bool:
+        return sum(s.kind in ("profession", "business_word") for s in p.spans) == 1
 
     def _places_and_purposes(self, p: _Parse, ctx: Context) -> None:
         trip = {"country": ctx.form.country, "purpose": ctx.form.purpose}
@@ -647,13 +701,13 @@ class RulesBrain:
                 remove=sl.remove,
             )
             for sl in p.slots
-            if not sl.host
+            if not sl.host and not sl.group
         )
         bare_me = patches == (TravellerPatch(relation="self"),)
         asking = bool(kinds & {"help", "office_question"})
         if (
             bare_me
-            and not (p.country or p.purpose or p.count or p.others_coming)
+            and not (p.country or p.purpose or p.count or p.others_coming or p.group_of)
             and (p.unexplained or asking)
         ):
             patches = ()  # "write me a poem": 'me' is not a traveller here
@@ -663,8 +717,15 @@ class RulesBrain:
         asked_who = ctx.asked is not None and ctx.asked.field == "travellers"
         if "no_more" in kinds or (asked_who and kinds & {"deny"} and not p.slots):
             # "that's all" / "no" to "who else?": everyone known so far is the whole group
-            p.count = len(ctx.form.travellers) + sum(1 for x in patches if x.ref is None) or None
-        details = bool(p.country or p.purpose or p.count or patches or p.purpose_choices)
+            # (a "me" in the same message is not one more person when you're already listed)
+            has_self = any(t.relation == "self" for t in ctx.form.travellers)
+            new_people = sum(
+                1 for x in patches if x.ref is None and not (has_self and x.relation == "self")
+            )
+            p.count = len(ctx.form.travellers) + new_people or None
+        details = bool(
+            p.country or p.purpose or p.count or patches or p.purpose_choices or p.group_of
+        )
         intent: Intent
         if details:
             corrective = p.conflict or kinds & {"correct_cue", "deny", "remove"}
@@ -701,6 +762,7 @@ class RulesBrain:
             travellers=patches,
             other_country=p.other_country,
             others_coming=p.others_coming,
+            group_of=p.group_of,
             purpose_choices=tuple(p.purpose_choices[:3]),
             asks_office="office_question" in kinds,
             asks_help="help" in kinds,

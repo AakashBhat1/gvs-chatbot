@@ -47,7 +47,9 @@ def parse_traveller(spec: str) -> Traveller:
         raise argparse.ArgumentTypeError(f"invalid traveller {spec!r}: {exc}") from exc
 
 
-def render(checklist: Checklist) -> str:
+def render(checklist: Checklist, *, disclaimer: bool = True) -> str:
+    """Plain-text checklist. The chat reply already carries the disclaimer, so the
+    REPL passes ``disclaimer=False`` to avoid printing it twice."""
     lines: list[str] = []
     for g in checklist.groups:
         reviewed = g.last_reviewed.isoformat() if g.last_reviewed else "not yet reviewed"
@@ -60,7 +62,8 @@ def render(checklist: Checklist) -> str:
             lines.append(f"  {p.index + 1}. {p.relation_label} ({p.profession_label}{age})")
             lines += [f"    - {d.label}" for d in p.documents]
     lines.append("")
-    lines.append("Confirm with the embassy or VFS before applying.")
+    if disclaimer:
+        lines.append("Confirm with the embassy or VFS before applying.")
     if checklist.tree_status != "reviewed":
         lines.append(f"WARNING: document data status is '{checklist.tree_status}'.")
     lines.append(f"(tree {checklist.tree_version})")

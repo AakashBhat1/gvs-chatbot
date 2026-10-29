@@ -9,6 +9,10 @@ from typing import Any
 import pytest
 
 from app import check_tree, cli
+from app.form import Traveller, TripForm
+from app.paths import default_tree_path
+from app.resolver import resolve
+from app.tree import load_tree
 
 WriteTree = Callable[[dict[str, Any]], Path]
 TODAY = date(2026, 10, 29)
@@ -195,3 +199,16 @@ def test_check_fails_on_bad_lexicon(tmp_path: Path, capsys: pytest.CaptureFixtur
     bad.write_text('[countries]\natlantis = ["atlantis"]\n', encoding="utf-8")
     assert check_tree.main(["--lexicon", str(bad)], today=TODAY) == 1
     assert "lexicon: countries.atlantis: not an id" in capsys.readouterr().err
+
+
+def test_render_can_leave_out_the_disclaimer() -> None:
+    """The chat reply already says it, so the REPL doesn't print it twice."""
+    form = TripForm(
+        country="japan",
+        purpose="tourism",
+        travellers=(Traveller(relation="self", profession="employed"),),
+    )
+    checklist = resolve(form, load_tree(default_tree_path()))
+    line = "Confirm with the embassy or VFS before applying."
+    assert line in cli.render(checklist)
+    assert line not in cli.render(checklist, disclaimer=False)

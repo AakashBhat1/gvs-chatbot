@@ -32,7 +32,15 @@ from app.paths import default_lexicon_path, default_tree_path
 from app.tree import LoadedTree, load_tree
 
 DEFAULT_SET = Path(__file__).resolve().parents[1] / "evals" / "understanding.jsonl"
-FIELDS = ("country", "purpose", "travellers", "expected_count", "intent", "on_topic")
+FIELDS = (
+    "country",
+    "purpose",
+    "travellers",
+    "expected_count",
+    "pending_group",
+    "intent",
+    "on_topic",
+)
 
 
 class CaseContext(BaseModel):

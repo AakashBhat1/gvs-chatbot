@@ -83,6 +83,7 @@ def merge(form: TripForm, ex: Extraction, *, overwrite: bool) -> tuple[TripForm,
     removals: set[int] = set()
     overflow = False
     added_other = False
+    added_relations: set[str] = set()
 
     for patch in ex.travellers:
         idx: int | None = patch.ref if patch.ref is not None and patch.ref < len(people) else None
@@ -104,6 +105,7 @@ def merge(form: TripForm, ex: Extraction, *, overwrite: bool) -> tuple[TripForm,
             people.append({"relation": patch.relation})
             idx = len(people) - 1
             added_other = added_other or patch.relation != "self"
+            added_relations.add(patch.relation)
         used.add(idx)
         if patch.remove:
             removals.add(idx)
@@ -132,14 +134,23 @@ def merge(form: TripForm, ex: Extraction, *, overwrite: bool) -> tuple[TripForm,
         expected = None
     # "with my family": wait for names; naming anyone (or "that's all") settles it.
     pending = (form.others_pending or ex.others_coming) and not added_other
+    # "with my friends": ask how many next; "3 friends" or "that's all" settles it.
+    group = ex.group_of or form.pending_group
+    if ex.group_of is None and group in added_relations:
+        group = None
     if ex.traveller_count is not None and ex.traveller_count <= len(people):
         pending = False
+        group = None
+    if group is not None and len(people) >= MAX_TRAVELLERS:
+        overflow = overflow or ex.group_of is not None
+        group = None
     new = TripForm(
         country=country,
         purpose=purpose,
         travellers=tuple(Traveller(**t) for t in people),
         expected_count=expected,
         others_pending=pending and bool(people),
+        pending_group=group,
     )
     return new, overflow
 
@@ -166,7 +177,21 @@ def prune(form: TripForm, tree: LoadedTree) -> TripForm:
         travellers=tuple(people),
         expected_count=form.expected_count,
         others_pending=form.others_pending,
+        pending_group=form.pending_group if form.pending_group in d.relations else None,
     )
+
+
+def _last_answer(state: ChatState, still_missing: tuple[int, ...]) -> str | None:
+    """The job just given for one of several people asked together, if the rest
+    are still missing it: offered as a one-tap 'Same' for all of them."""
+    if state.asked_field != "profession" or len(state.asked_travellers) < 2:
+        return None
+    people = state.form.travellers
+    asked = [i for i in state.asked_travellers if i < len(people)]
+    answered = [i for i in asked if people[i].profession is not None]
+    if not answered or not set(still_missing) <= set(asked):
+        return None
+    return people[answered[-1]].profession
 
 
 # --------------------------------------------------------------------------- engine
@@ -317,7 +342,20 @@ class ChatEngine:
                     update={"travellers": (*form.travellers, Traveller(relation=args[0]))}
                 )
         elif kind == "everyone" and form.travellers:
-            new = form.model_copy(update={"expected_count": None, "others_pending": False})
+            new = form.model_copy(
+                update={"expected_count": None, "others_pending": False, "pending_group": None}
+            )
+        elif (
+            kind == "group"
+            and len(args) == 1
+            and args[0].isdigit()
+            and form.pending_group is not None
+            and 1 <= int(args[0]) <= MAX_TRAVELLERS - len(form.travellers)
+        ):
+            group = tuple(Traveller(relation=form.pending_group) for _ in range(int(args[0])))
+            new = form.model_copy(
+                update={"travellers": (*form.travellers, *group), "pending_group": None}
+            )
         elif (
             kind == "prof"
             and len(args) == 2
@@ -328,6 +366,17 @@ class ChatEngine:
             people = list(form.travellers)
             i = int(args[0])
             people[i] = people[i].model_copy(update={"profession": args[1]})
+            new = form.model_copy(update={"travellers": tuple(people)})
+        elif (
+            kind == "same"
+            and len(args) == 1
+            and args[0] in d.professions
+            and state.asked_field == "profession"
+        ):
+            people = list(form.travellers)
+            for i in state.asked_travellers:
+                if i < len(people) and people[i].profession is None:
+                    people[i] = people[i].model_copy(update={"profession": args[0]})
             new = form.model_copy(update={"travellers": tuple(people)})
 
         if new is None:  # stale or forged button: ignore it, re-ask
@@ -376,9 +425,13 @@ class ChatEngine:
                     buttons = T.purpose_buttons(tree, only=purpose_choices)
                 else:
                     text, buttons = T.ASK_PURPOSE, T.purpose_buttons(tree)
+            elif gap.field == "travellers" and form.pending_group is not None:
+                asked = ("group_size", ())
+                text = T.ask_group_size(form.pending_group, tree)
+                buttons = T.group_size_buttons(MAX_TRAVELLERS - len(form.travellers))
             elif gap.field == "travellers":
                 more = bool(form.travellers)
-                text = T.ask_more(form) if more else T.ASK_WHO
+                text = T.ask_more(form, tree) if more else T.ASK_WHO
                 asked = ("travellers", ())
                 buttons = T.who_buttons(form, tree) if show or form.others_pending else ()
             else:
@@ -394,6 +447,8 @@ class ChatEngine:
                     asked = ("profession", adults)
                     text = T.ask_profession(form, adults, tree)
                     buttons = T.profession_buttons(adults[0], tree) if show else ()
+                    if same := _last_answer(state, adults):
+                        buttons = (T.same_button(same, tree), *buttons)
                 else:
                     asked = ("age", kids)
                     text = T.ask_age(form, kids, tree)
