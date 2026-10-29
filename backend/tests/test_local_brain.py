@@ -408,3 +408,21 @@ def test_http_transport_round_trip_and_limits(server: str, monkeypatch: pytest.M
         http_transport(f"{server}/redirect", b"{}", 5)  # never followed
     with pytest.raises(BrainUnavailable, match="too large"):
         http_transport(f"{server}/big", b"{}", 5)
+
+
+def test_tidy_drops_guessed_other_profession(real_tree: LoadedTree) -> None:
+    reply = answer(
+        {
+            "travellers": [
+                {"relation": "self", "profession": "other"},
+                {"relation": "spouse", "profession": "retired"},
+            ]
+        }
+    )
+    ex = brain(real_tree, FakeOllama(reply)).understand("two adults", EMPTY).extraction
+    assert [p.profession for p in ex.travellers] == [None, "retired"]
+
+
+def test_hints_reach_the_it_words() -> None:
+    employed = load_hints(default_lexicon_path())["professions"]["employed"]
+    assert {"work in", "it professional", "in it"} <= set(employed)

@@ -164,14 +164,18 @@ or stay with (the son they visit, the brother whose wedding it is) are not trave
 include {"relation": "self"}.
 - Use the most specific relation said: son or daughter when said; child only for \
 "kids", "children", "baby". Never invent a person ("two adults" is not a spouse).
-- profession: only when a job is said, using "Words". age: only when stated. A \
-baby or newborn gets profession "infant".
+- profession: only when a job is said, using "Words". Never "other" unless the \
+message says "other".
+- age: a number next to a person is their age ("son 6", "me 40", "(35)", "10 year \
+old son", "5 saal ka"). A baby or newborn gets profession "infant" and no age.
 - Someone already in the form is given by "ref", not as a new entry. To drop \
 someone: {"ref": N, "remove": true}.
 - Put country or purpose on a person only if that person goes elsewhere or for \
 another reason. Never repeat the trip's own country or purpose there.
 - traveller_count: total going, writer included, when a number is given \
-("family of 4", "we are 3", "hum 4 log", "hum dono" = 2, "group of 6 friends" = 6).
+("family of 4", "we are 3", "hum 4 log", "hum dono" = 2, "group of 6 friends" = 6). \
+Give the count instead of inventing people nobody named.
+- "N friends" / "2 kids" means N separate entries of that relation.
 - group_of: only for a plural group with no number ("with my friends" = \
 friend_colleague, "my kids" = child). Never when those people are counted or listed.
 - others_coming: true for "with my family" when nobody is named.
@@ -228,12 +232,32 @@ EXAMPLES: Final = (
         "my mother can't come anymore",
         '{"intent":"correct","travellers":[{"ref":1,"remove":true}]}',
     ),
+    (
+        "{}",
+        "nothing yet",
+        "me 42 and my wife, with our daughters aged 9 and 6, to Rome",
+        '{"country":"italy","travellers":[{"relation":"self","age":42},{"relation":"spouse"},'
+        '{"relation":"daughter","age":9},{"relation":"daughter","age":6}]}',
+    ),
+    (
+        "{}",
+        "nothing yet",
+        "bhai ke saath Singapore ghumne jaana hai",
+        '{"country":"singapore","purpose":"tourism","travellers":[{"relation":"self"},'
+        '{"relation":"sibling"}]}',
+    ),
+    (
+        "{}",
+        "travellers",
+        "hum teen log hain",
+        '{"travellers":[{"relation":"self"}],"traveller_count":3}',
+    ),
     ("{}", "nothing yet", "thanks!", "{}"),
     ("{}", "nothing yet", "write me a poem", '{"on_topic":false}'),
 )
 
 HINT_SECTIONS: Final = ("purposes", "professions", "relations")
-MAX_HINTS: Final = 14
+MAX_HINTS: Final = 32  # enough to reach "work in", "it professional" for employed
 
 
 def load_hints(path: Path) -> dict[str, dict[str, list[str]]]:
@@ -417,10 +441,16 @@ _KIDS: Final = frozenset({"child", "son", "daughter"})
 def tidy(ex: Extraction, ctx: Context) -> Extraction:
     """Drop what a small model tends to add on its own.
 
-    ``group_of`` asks "how many?", so it is kept only for a group that is
-    neither listed, nor counted, nor already in the form. A son or daughter
-    counts as listing "kids".
-    """
+    A profession of "other" is dropped so the bot asks instead. ``group_of``
+    asks "how many?", so it is kept only for a group that is neither listed,
+    nor counted, nor already in the form. A son or daughter counts as listing
+    "kids"."""
+    if any(p.profession == "other" for p in ex.travellers):  # a guess, never said
+        people = tuple(
+            p.model_copy(update={"profession": None}) if p.profession == "other" else p
+            for p in ex.travellers
+        )
+        ex = ex.model_copy(update={"travellers": people})
     group = ex.group_of
     if group is None:
         return ex
