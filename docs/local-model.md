@@ -100,6 +100,14 @@ uv run gvs-chat -v
 
 `-v` shows which brain answered each message and how long the model took.
 
+## Testing on Colab instead (T4, 16 GB)
+
+`notebooks/colab-t4-local-model.ipynb` does all of the above on a Colab GPU:
+installs Ollama and uv, pulls the models, clones the repo with a read-only
+token from Colab Secrets, runs `gvs-local-check` and scores every model
+(rules only, rules -> model, model alone). Open it in Colab, choose a T4 GPU,
+add a `GITHUB_TOKEN` secret, then Run all.
+
 ## Troubleshooting
 
 | Symptom | Fix |
