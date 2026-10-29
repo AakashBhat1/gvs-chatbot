@@ -209,6 +209,14 @@ def test_hints_come_from_the_hand_lexicon(real_tree: LoadedTree, tmp_path: Path)
         ({"group_of": "friend_colleague", "travellers": [{"relation": "self"}]}, TripForm(), True),
         ({"group_of": "spouse", "travellers": [{"relation": "spouse"}]}, TripForm(), False),
         ({"group_of": "child", "traveller_count": 4}, TripForm(), False),
+        # the Colab chat: "family of 3, myself, my son and my wife" then "how many children?"
+        (
+            {"group_of": "child", "travellers": [{"relation": "self"}, {"relation": "son"}]},
+            TripForm(),
+            False,
+        ),
+        ({"group_of": "child"}, TripForm(travellers=(Traveller(relation="daughter"),)), False),
+        ({"group_of": "child", "travellers": [{"relation": "spouse"}]}, TripForm(), True),
         (
             {"group_of": "son"},
             TripForm(travellers=(Traveller(relation="son"),)),

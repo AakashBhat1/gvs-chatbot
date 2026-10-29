@@ -410,15 +410,24 @@ class LocalBrain:
         return BrainResult(extraction, confident=True, brain=self.name)
 
 
+# "my son" already answers "my kids": asking "how many children?" next would add a stranger.
+_KIDS: Final = frozenset({"child", "son", "daughter"})
+
+
 def tidy(ex: Extraction, ctx: Context) -> Extraction:
     """Drop what a small model tends to add on its own.
 
     ``group_of`` asks "how many?", so it is kept only for a group that is
-    neither listed, nor counted, nor already in the form.
+    neither listed, nor counted, nor already in the form. A son or daughter
+    counts as listing "kids".
     """
     group = ex.group_of
+    if group is None:
+        return ex
     listed = {p.relation for p in ex.travellers} | {t.relation for t in ctx.form.travellers}
-    if group is not None and (group in listed or ex.traveller_count is not None):
+    if group in _KIDS:
+        listed = {group} if listed & _KIDS else listed
+    if group in listed or ex.traveller_count is not None:
         return ex.model_copy(update={"group_of": None})
     return ex
 
