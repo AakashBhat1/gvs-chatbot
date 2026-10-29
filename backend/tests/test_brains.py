@@ -231,3 +231,43 @@ def test_repl_eof(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr("builtins.input", eof)
     assert repl.main(["--brains", "rules"]) == 0
+
+
+def _ex(**kw: object) -> Extraction:
+    return Extraction.model_validate(kw)
+
+
+class Fixed:
+    def __init__(self, name: str, ex: Extraction, confident: bool) -> None:
+        self.name, self.ex, self.confident = name, ex, confident
+
+    def understand(self, message: str, ctx: Context) -> BrainResult:
+        return BrainResult(self.ex, self.confident, self.name)
+
+
+def test_later_brain_keeps_country_and_purpose_it_left_out() -> None:
+    rules = Fixed("rules", _ex(country="canada", purpose="family_visit"), False)
+    model = Fixed("local", _ex(travellers=[{"relation": "mother"}]), True)
+    ex = Cascade([rules, model]).understand("x", CTX).extraction
+    assert (ex.country, ex.purpose) == ("canada", "family_visit")
+    assert [p.relation for p in ex.travellers] == ["mother"]
+
+
+def test_later_brain_values_win_and_choices_block_purpose() -> None:
+    rules = Fixed("rules", _ex(country="uk", purpose="tourism"), False)
+    model = Fixed("local", _ex(country="japan", purpose_choices=["tourism", "business"]), True)
+    ex = Cascade([rules, model]).understand("x", CTX).extraction
+    assert (ex.country, ex.purpose) == ("japan", None)
+
+
+def test_off_topic_or_restart_answers_are_not_filled() -> None:
+    rules = Fixed("rules", _ex(country="uk", other_country=None), False)
+    for later in (_ex(on_topic=False), _ex(intent="restart")):
+        ex = Cascade([rules, Fixed("local", later, True)]).understand("x", CTX).extraction
+        assert ex.country is None
+
+
+def test_other_country_is_kept_too() -> None:
+    rules = Fixed("rules", _ex(other_country="sri-lanka"), False)
+    ex = Cascade([rules, Fixed("local", _ex(), True)]).understand("x", CTX).extraction
+    assert ex.other_country == "sri-lanka"

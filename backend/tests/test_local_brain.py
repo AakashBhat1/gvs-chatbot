@@ -8,6 +8,7 @@ import threading
 import urllib.error
 from collections.abc import Iterator
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -21,8 +22,10 @@ from app.brains.local import (
     LocalBrain,
     LocalSettings,
     http_transport,
+    load_hints,
     parse_response,
     response_schema,
+    system_prompt,
 )
 from app.chat import ChatEngine
 from app.extraction import Asked, Context, Extraction, sanitize
@@ -32,6 +35,7 @@ from app.local_check import main as check_main
 from app.paths import default_lexicon_path
 from app.tree import LoadedTree
 
+EVALS = Path(__file__).resolve().parents[1] / "evals"
 EMPTY = Context(form=TripForm(), asked=None, stage="collecting")
 
 
@@ -67,7 +71,7 @@ def test_settings_defaults_and_env() -> None:
     s = LocalSettings.from_env({})
     assert (s.url, s.model, s.think, s.num_ctx) == (
         "http://127.0.0.1:11434",
-        "qwen3.5:9b",
+        "qwen3:8b",
         False,
         8192,
     )
@@ -152,7 +156,8 @@ def test_prompt_shows_form_refs_and_question(real_tree: LoadedTree) -> None:
     result = brain(real_tree, fake).understand("she is retired", ctx)
     prompt = (fake.calls[0][1] or {})["prompt"]
     assert '{"ref":1,"relation":"mother"}' in prompt
-    assert "profession for refs [1]" in prompt
+    assert "The bot last asked: profession for refs [1]." in prompt
+    assert prompt.endswith("Answer:")
     assert result.extraction.travellers[0].ref == 1
     assert result.confident and result.brain == "local"
 
@@ -169,9 +174,54 @@ def test_schema_narrows_every_id_field(real_tree: LoadedTree) -> None:
 
 
 def test_prompt_examples_are_valid_for_the_tree(real_tree: LoadedTree) -> None:
-    for _, example in EXAMPLES:
+    for form, _, _, example in EXAMPLES:
+        n = len(json.loads(form).get("travellers", []))
         ex = Extraction.model_validate_json(example)
-        assert sanitize(ex, real_tree, 0) == ex
+        assert sanitize(ex, real_tree, n) == ex
+
+
+def test_prompt_examples_are_not_eval_cases() -> None:
+    """Examples that repeat a scored message would make the scores meaningless."""
+    scored = {
+        json.loads(line)["message"].lower()
+        for f in EVALS.glob("*.jsonl")
+        for line in f.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("//")
+    }
+    assert len(scored) > 100
+    assert not {message.lower() for _, _, message, _ in EXAMPLES} & scored
+
+
+def test_hints_come_from_the_hand_lexicon(real_tree: LoadedTree, tmp_path: Path) -> None:
+    hints = load_hints(default_lexicon_path())
+    assert "teacher" in hints["professions"]["employed"]
+    assert "ghumne" in hints["purposes"]["tourism"]
+    assert all(w.isascii() for ws in hints["relations"].values() for w in ws)
+    prompt = system_prompt(real_tree, hints)
+    assert "- employed: " in prompt and "teacher" in prompt
+    assert load_hints(tmp_path / "missing.toml") == {}
+    assert "Words (examples" not in system_prompt(real_tree, {})
+
+
+@pytest.mark.parametrize(
+    ("answer_", "form", "kept"),
+    [
+        ({"group_of": "friend_colleague", "travellers": [{"relation": "self"}]}, TripForm(), True),
+        ({"group_of": "spouse", "travellers": [{"relation": "spouse"}]}, TripForm(), False),
+        ({"group_of": "child", "traveller_count": 4}, TripForm(), False),
+        (
+            {"group_of": "son"},
+            TripForm(travellers=(Traveller(relation="son"),)),
+            False,
+        ),
+    ],
+)
+def test_tidy_drops_group_of_for_known_people(
+    real_tree: LoadedTree, answer_: dict[str, Any], form: TripForm, kept: bool
+) -> None:
+    ctx = Context(form=form, asked=None, stage="collecting")
+    ex = brain(real_tree, FakeOllama(answer(answer_))).understand("x", ctx).extraction
+    assert (ex.group_of is not None) is kept
 
 
 def test_prompt_is_cached_per_tree_version(real_tree: LoadedTree) -> None:
@@ -279,7 +329,7 @@ def good_probe() -> dict[str, Any]:
 
 
 def test_check_passes(real_tree: LoadedTree, capsys: pytest.CaptureFixture[str]) -> None:
-    fake = FakeOllama(good_probe(), models=("qwen3.5:9b",))
+    fake = FakeOllama(good_probe(), models=("qwen3:8b",))
     assert check(real_tree, LocalSettings(), transport=fake) == []
     assert "warm run" in capsys.readouterr().out
 
@@ -292,10 +342,10 @@ def test_check_reports_each_problem(real_tree: LoadedTree) -> None:
 
     assert "is it running" in check(real_tree, s, transport=down)[0]
     missing = check(real_tree, s, transport=FakeOllama(good_probe(), models=("llama3:8b",)))
-    assert "ollama pull qwen3.5:9b" in missing[0]
-    wrong = check(real_tree, s, transport=FakeOllama(answer({}), models=("qwen3.5:9b",)))
+    assert "ollama pull qwen3:8b" in missing[0]
+    wrong = check(real_tree, s, transport=FakeOllama(answer({}), models=("qwen3:8b",)))
     assert "understood wrongly" in wrong[0]
-    broken = check(real_tree, s, transport=FakeOllama(b"x", models=("qwen3.5:9b",)))
+    broken = check(real_tree, s, transport=FakeOllama(b"x", models=("qwen3:8b",)))
     assert "cold run failed" in broken[0]
     latest = LocalSettings(model="mymodel")
     assert (

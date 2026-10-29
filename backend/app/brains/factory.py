@@ -12,9 +12,9 @@ from typing import Final
 
 from app.brains import Brain, Cascade
 from app.brains.lexicon import Lexicon
-from app.brains.local import LocalBrain
+from app.brains.local import LocalBrain, load_hints
 from app.brains.rules import RulesBrain
-from app.paths import default_tree_path
+from app.paths import default_lexicon_path, default_tree_path
 from app.tree import LoadedTree, TreeStore
 
 DEFAULT_BRAINS: Final = "rules"
@@ -24,7 +24,7 @@ TreeGetter = Callable[[], LoadedTree]
 # Each entry builds one brain. "haiku" registers here when it exists.
 _BUILDERS: Final[dict[str, Callable[[Lexicon, TreeGetter], Brain]]] = {
     "rules": lambda lexicon, _tree: RulesBrain(lexicon),
-    "local": lambda _lexicon, tree: LocalBrain(tree),
+    "local": lambda _lexicon, tree: LocalBrain(tree, hints=load_hints(default_lexicon_path())),
 }
 
 

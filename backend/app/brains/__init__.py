@@ -41,6 +41,10 @@ class Cascade:
     If none is confident, the answer from the *last* brain that answered is
     used, since later brains are the more capable ones. At least one brain
     must never raise :class:`BrainUnavailable` (the rules brain).
+
+    A later brain's answer keeps the destination and purpose an earlier brain
+    found when it left them out: the rules read place names and purpose words
+    reliably even when they are unsure about the rest of the message.
     """
 
     name = "cascade"
@@ -58,9 +62,29 @@ class Cascade:
             except BrainUnavailable as exc:
                 log.warning("brain %s unavailable: %s", brain.name, exc)
                 continue
+            if best is not None:
+                result = _keep_trip(result, best)
             if result.confident:
                 return result
             best = result
         if best is None:
             raise BrainUnavailable("no brain could answer")
         return best
+
+
+def _keep_trip(result: BrainResult, earlier: BrainResult) -> BrainResult:
+    """Fill the later answer's missing country / purpose from the earlier one."""
+    ex, prev = result.extraction, earlier.extraction
+    if not ex.on_topic or ex.intent == "restart":
+        return result
+    update: dict[str, object] = {}
+    if ex.country is None and ex.other_country is None:
+        if prev.country is not None:
+            update["country"] = prev.country
+        elif prev.other_country is not None:
+            update["other_country"] = prev.other_country
+    if ex.purpose is None and not ex.purpose_choices and prev.purpose is not None:
+        update["purpose"] = prev.purpose
+    if not update:
+        return result
+    return BrainResult(ex.model_copy(update=update), result.confident, result.brain)
