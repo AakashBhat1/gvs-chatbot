@@ -339,3 +339,17 @@ def test_who_else_says_who_is_in_so_far(engine: ChatEngine) -> None:
     friend = next(b for b in r[1].buttons if b.choice == "add:friend_colleague")
     state, reply = engine.handle(state, choice=friend.choice)
     assert reply.text == f"So far: you and your friend or colleague. {T.ASK_WHO_WITH}"
+
+
+def test_fourth_manual_session_one_message_two_jobs(engine: ChatEngine) -> None:
+    """'business owner wife ...' gave my job to my wife and dropped hers."""
+    state, r = play(
+        engine,
+        "singapore",
+        "3",  # Conference or business meeting
+        "just me and my wife",
+        "i am a business owner wife is a school teacher",
+    )
+    assert people(state) == [("self", "business_owner", None), ("spouse", "employed", None)]
+    assert state.stage == "confirming"
+    assert "• Your spouse: Salaried (private sector)" in r[-1].text

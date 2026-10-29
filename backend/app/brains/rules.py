@@ -555,10 +555,16 @@ class RulesBrain:
                     continue
             if s.kind != "profession" or self._negated(p, k):
                 continue
-            # "newborn son", "retired couple": a profession right before a person is theirs.
+            # "newborn son", "retired couple": a profession right before a person is theirs,
+            # unless it already follows someone: in "i am a business owner wife is a
+            # teacher" the job is mine, not my wife's.
             nxt = p.spans[k + 1] if k + 1 < len(p.spans) else None
+            prev = _prev_meaningful(p.spans, k)
+            follows_person = prev is not None and prev.kind in PERSON_KINDS
             ahead = (
-                self._mention_at(p, k + 1) if nxt is not None and nxt.kind in PERSON_KINDS else None
+                self._mention_at(p, k + 1)
+                if nxt is not None and nxt.kind in PERSON_KINDS and not follows_person
+                else None
             )
             target = ahead or self._nearest(p, k)
             if target is None:
@@ -570,6 +576,8 @@ class RulesBrain:
                     slot = p.slots[i]
                     if slot.profession is None or s.value == NO_PROFESSION_SWAP:
                         slot.profession = s.value
+                    elif slot.profession != s.value:
+                        p.ambiguous += 1  # two jobs for one person: a model should read it
 
     def _spread(self, p: _Parse, target: Mention, k: int, s: Span) -> list[Mention]:
         """'me and my wife are doctors' -> the profession applies to the whole group."""
