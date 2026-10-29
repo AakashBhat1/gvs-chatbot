@@ -26,7 +26,7 @@ from app.tree import LoadedTree, load_tree
 
 # Not one of the prompt's examples, so a model that only copies them fails.
 PROBE: Final = "my parents are both retired and want to go to London for a holiday"
-COLD_TIMEOUT: Final = 120.0
+COLD_TIMEOUT: Final = 300.0  # first run on a fresh machine also pays one-time GPU setup
 EXPECT: Final = ("uk", "tourism", ["father", "mother"])
 
 
