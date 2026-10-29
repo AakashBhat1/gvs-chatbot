@@ -356,7 +356,7 @@ def test_refs_merge_and_rules_only_refs_kept() -> None:
 
 def test_off_topic_is_the_models_call_unless_rules_saw_a_trip() -> None:
     question = _ex(country="japan")  # "what's the best time to visit Japan"
-    assert not rules_precede(question, _ex(on_topic=False)).on_topic
+    assert rules_precede(question, _ex(on_topic=False)) == _ex(on_topic=False)
     trip = _ex(country="japan", travellers=[{"relation": "self"}])
     assert rules_precede(trip, _ex(on_topic=False)).on_topic
 

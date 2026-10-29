@@ -441,10 +441,19 @@ _KIDS: Final = frozenset({"child", "son", "daughter"})
 def tidy(ex: Extraction, ctx: Context) -> Extraction:
     """Drop what a small model tends to add on its own.
 
-    A profession of "other" is dropped so the bot asks instead. ``group_of``
+    A ref past the end of the form is a new person. A profession of "other" is
+    dropped so the bot asks instead. ``group_of``
     asks "how many?", so it is kept only for a group that is neither listed,
     nor counted, nor already in the form. A son or daughter counts as listing
     "kids"."""
+    n = len(ctx.form.travellers)
+    if any(p.ref is not None and p.ref >= n for p in ex.travellers):
+        # a ref to nobody: "add my father" given as ref 4 is a new person, not an update
+        people = tuple(
+            p.model_copy(update={"ref": None}) if p.ref is not None and p.ref >= n else p
+            for p in ex.travellers
+        )
+        ex = ex.model_copy(update={"travellers": people})
     if any(p.profession == "other" for p in ex.travellers):  # a guess, never said
         people = tuple(
             p.model_copy(update={"profession": None}) if p.profession == "other" else p

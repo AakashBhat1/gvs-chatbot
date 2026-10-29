@@ -426,3 +426,14 @@ def test_tidy_drops_guessed_other_profession(real_tree: LoadedTree) -> None:
 def test_hints_reach_the_it_words() -> None:
     employed = load_hints(default_lexicon_path())["professions"]["employed"]
     assert {"work in", "it professional", "in it"} <= set(employed)
+
+
+def test_tidy_turns_a_ref_to_nobody_into_a_new_person(real_tree: LoadedTree) -> None:
+    form = TripForm(travellers=(Traveller(relation="self"),))
+    ctx = Context(form=form, asked=None, stage="confirming")
+    reply = answer({"travellers": [{"ref": 4, "relation": "father"}, {"ref": 0, "age": 40}]})
+    ex = brain(real_tree, FakeOllama(reply)).understand("add my father", ctx).extraction
+    assert [(p.ref, p.relation, p.age) for p in ex.travellers] == [
+        (None, "father", None),
+        (0, None, 40),
+    ]

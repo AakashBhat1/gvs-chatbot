@@ -88,12 +88,16 @@ def rules_precede(rules: Extraction, model: Extraction) -> Extraction:
     better), unless the rules found at least two kinds of trip detail."""
     if model.intent == "restart" or rules.intent == "restart":
         return model if model.intent == "restart" else rules
+    on_topic = model.on_topic or _kinds(rules) >= 2
+    if not on_topic:
+        # "what's the best time to visit Japan": a question, not a trip; keep nothing
+        return Extraction(on_topic=False, asks_office=rules.asks_office or model.asks_office)
     people = _people(rules, model)
     group = rules.group_of or model.group_of
     if group is not None and any(p.relation == group for p in people):
         group = None
     return Extraction(
-        on_topic=model.on_topic or _kinds(rules) >= 2,
+        on_topic=True,
         intent=rules.intent if rules.intent != "give_details" else model.intent,
         country=rules.country or (None if rules.other_country else model.country),
         purpose=rules.purpose or (None if rules.purpose_choices else model.purpose),
