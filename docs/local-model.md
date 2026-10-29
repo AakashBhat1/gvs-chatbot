@@ -103,10 +103,10 @@ uv run gvs-chat -v
 ## Testing on Colab instead (T4, 16 GB)
 
 `notebooks/colab-t4-local-model.ipynb` does all of the above on a Colab GPU:
-installs Ollama and uv, pulls the models, clones the repo with a read-only
-token from Colab Secrets, runs `gvs-local-check` and scores every model
-(rules only, rules -> model, model alone). Open it in Colab, choose a T4 GPU,
-add a `GITHUB_TOKEN` secret, then Run all.
+installs Ollama and uv, pulls the models, clones the repo, runs
+`gvs-local-check` and scores every model (rules only, rules -> model, model
+alone). Open it in Colab, choose a T4 GPU, then Run all:
+https://colab.research.google.com/github/AakashBhat1/gvs-chatbot/blob/main/notebooks/colab-t4-local-model.ipynb
 
 ## Troubleshooting
 
