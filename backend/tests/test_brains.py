@@ -10,7 +10,7 @@ from app.brains.combine import fill_blanks, rules_precede
 from app.brains.factory import UnknownBrain, brain_names, build_cascade, combiner
 from app.brains.lexicon import LexiconError, load_lexicon, parse_lexicon
 from app.extraction import Context, Extraction, sanitize
-from app.form import TripForm
+from app.form import Traveller, TripForm
 from app.paths import default_lexicon_path
 from app.text import MessageTooLong, clean, has_devanagari, tokenize
 from app.tree import LoadedTree
@@ -350,8 +350,32 @@ def test_model_fills_what_rules_found_nothing_for() -> None:
 def test_refs_merge_and_rules_only_refs_kept() -> None:
     rules = _ex(travellers=[{"ref": 1, "remove": True}, {"ref": 0, "age": 40}])
     model = _ex(travellers=[{"ref": 0, "profession": "employed"}])
-    assert _rel(rules_precede(rules, model)) == [(0, None, "employed", 40), (1, None, None, None)]
-    assert rules_precede(rules, model).travellers[1].remove
+    assert _rel(rules_precede(rules, model)) == [(1, None, None, None), (0, None, "employed", 40)]
+    assert rules_precede(rules, model).travellers[0].remove
+
+
+def test_a_ref_and_a_relation_for_the_same_person_are_one_person() -> None:
+    """Session 5: rules read 'my wife' by relation, the model updated traveller #1 by ref."""
+    form = TripForm(
+        travellers=(
+            Traveller(relation="self"),
+            Traveller(relation="spouse"),
+            Traveller(relation="son"),
+        )
+    )
+    rules = _ex(
+        travellers=[{"relation": "self", "profession": "business_owner"}, {"relation": "spouse"}]
+    )
+    model = _ex(
+        travellers=[
+            {"ref": 0, "profession": "business_owner"},
+            {"ref": 1, "profession": "self_employed_professional"},
+        ]
+    )
+    assert _rel(rules_precede(rules, model, form)) == [
+        (0, None, "business_owner", None),
+        (1, None, "self_employed_professional", None),
+    ]
 
 
 def test_off_topic_is_the_models_call_unless_rules_saw_a_trip() -> None:

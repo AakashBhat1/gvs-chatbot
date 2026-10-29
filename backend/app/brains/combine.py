@@ -23,18 +23,19 @@ same for any later brain (local model now, Haiku later).
 
 from __future__ import annotations
 
-from collections import Counter
 from collections.abc import Callable
 from typing import Final
 
 from app.extraction import Extraction, TravellerPatch
+from app.form import TripForm
 
-Combine = Callable[[Extraction, Extraction], Extraction]
+# (rules' answer, later brain's answer, the form so far) -> merged answer
+Combine = Callable[[Extraction, Extraction, TripForm], Extraction]
 
 _DETAILS: Final = ("profession", "age", "country", "purpose")
 
 
-def fill_blanks(rules: Extraction, model: Extraction) -> Extraction:
+def fill_blanks(rules: Extraction, model: Extraction, form: TripForm | None = None) -> Extraction:
     if not model.on_topic or model.intent == "restart":
         return model
     update: dict[str, object] = {}
@@ -55,25 +56,45 @@ def _fill(patch: TravellerPatch, other: TravellerPatch) -> TravellerPatch:
     return patch.model_copy(update=update) if update else patch
 
 
-def _people(rules: Extraction, model: Extraction) -> tuple[TravellerPatch, ...]:
+def _people(rules: Extraction, model: Extraction, form: TripForm) -> tuple[TravellerPatch, ...]:
+    """The rules decide who; the model decides their details.
+
+    Each person the rules read is paired with the model's entry for the same
+    person, by ref or by relation, so "my wife" (rules, by relation) and the
+    model's update to traveller #1 (by ref) are one person, not two. A model
+    entry with no rules counterpart is kept only if it updates someone already
+    in the form; a new person only the model saw is dropped.
+    """
     if not rules.travellers:
         return model.travellers  # the rules saw nobody: nothing to check against
-    # Updates to people already in the form, by ref: the model's reading, rules filling gaps.
-    rules_refs = {p.ref: p for p in rules.travellers if p.ref is not None}
-    model_refs = {p.ref: p for p in model.travellers if p.ref is not None}
-    out = [_fill(p, rules_refs[r]) if r in rules_refs else p for r, p in model_refs.items()]
-    out += [p for r, p in rules_refs.items() if r not in model_refs]
-    # New people: the rules decide who, the model decides their details.
-    rules_new = [p for p in rules.travellers if p.ref is None]
-    model_new: dict[str, list[TravellerPatch]] = {}
-    for p in model.travellers:
-        if p.ref is None and p.relation is not None:
-            model_new.setdefault(p.relation, []).append(p)
-    for relation, n in Counter(p.relation for p in rules_new if p.relation).items():
-        theirs = model_new.get(relation, [])[:n]
-        mine = [p for p in rules_new if p.relation == relation]
-        out += [_fill(m, r) for m, r in zip(theirs, mine, strict=False)]
-        out += mine[len(theirs) :]
+
+    def who(p: TravellerPatch) -> str | None:
+        if p.ref is not None and p.ref < len(form.travellers):
+            return form.travellers[p.ref].relation
+        return p.relation
+
+    left = list(model.travellers)
+    out: list[TravellerPatch] = []
+    for mine in rules.travellers:
+        theirs = next((p for p in left if mine.ref is not None and p.ref == mine.ref), None)
+        theirs = theirs or next(
+            (
+                p
+                for p in left
+                if who(p) == who(mine) and (p.ref is None or mine.ref is None or p.ref == mine.ref)
+            ),
+            None,
+        )
+        if theirs is None:
+            out.append(mine)  # the model missed them ("just me"): keep the rules' reading
+            continue
+        left.remove(theirs)
+        ref = theirs.ref if theirs.ref is not None else mine.ref
+        merged = _fill(theirs, mine).model_copy(
+            update={"ref": ref, "remove": theirs.remove or mine.remove}
+        )
+        out.append(merged)
+    out += [p for p in left if p.ref is not None]
     return tuple(out)
 
 
@@ -83,7 +104,7 @@ def _kinds(ex: Extraction) -> int:
     return sum(bool(x) for x in (place, ex.purpose, ex.travellers, ex.traveller_count))
 
 
-def rules_precede(rules: Extraction, model: Extraction) -> Extraction:
+def rules_precede(rules: Extraction, model: Extraction, form: TripForm | None = None) -> Extraction:
     """See the module docstring. Off-topic is the model's call (it reads questions
     better), unless the rules found at least two kinds of trip detail."""
     if model.intent == "restart" or rules.intent == "restart":
@@ -92,7 +113,7 @@ def rules_precede(rules: Extraction, model: Extraction) -> Extraction:
     if not on_topic:
         # "what's the best time to visit Japan": a question, not a trip; keep nothing
         return Extraction(on_topic=False, asks_office=rules.asks_office or model.asks_office)
-    people = _people(rules, model)
+    people = _people(rules, model, form or TripForm())
     group = rules.group_of or model.group_of
     if group is not None and any(p.relation == group for p in people):
         group = None

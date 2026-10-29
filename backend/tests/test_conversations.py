@@ -9,9 +9,11 @@ from __future__ import annotations
 import pytest
 
 from app import templates as T
+from app.brains import BrainResult, Cascade
 from app.brains.lexicon import load_lexicon
 from app.brains.rules import RulesBrain
 from app.chat import BotReply, ChatEngine, ChatState
+from app.extraction import Context, Extraction
 from app.form import Traveller, TripForm
 from app.paths import default_lexicon_path
 from app.tree import LoadedTree
@@ -353,3 +355,38 @@ def test_fourth_manual_session_one_message_two_jobs(engine: ChatEngine) -> None:
     assert people(state) == [("self", "business_owner", None), ("spouse", "employed", None)]
     assert state.stage == "confirming"
     assert "• Your spouse: Salaried (private sector)" in r[-1].text
+
+
+def test_fifth_manual_session_model_by_ref_no_extra_spouse(real_tree: LoadedTree) -> None:
+    """The model answered by ref, the rules by relation: the wife was added twice."""
+
+    class RefModel:
+        name = "local"
+
+        def understand(self, message: str, ctx: Context) -> BrainResult:
+            ex = Extraction.model_validate(
+                {
+                    "travellers": [
+                        {"ref": 0, "profession": "business_owner"},
+                        {"ref": 1, "profession": "self_employed_professional"},
+                    ]
+                }
+            )
+            return BrainResult(ex, True, self.name)
+
+    lex = load_lexicon(default_lexicon_path(), real_tree)
+    cascade = Cascade([RulesBrain(lex), RefModel()])
+    engine = ChatEngine(lambda: real_tree, cascade, ask_age_for=lex.ask_age_for)
+    state, r = play(
+        engine,
+        "ok so i am going to singapore with my family",
+        "2",
+        "my wife and son",
+        "i am business man and my wife is laywer",
+    )
+    assert people(state) == [
+        ("self", "business_owner", None),
+        ("spouse", "self_employed_professional", None),
+        ("son", None, None),
+    ]
+    assert r[-1].text == "How old is your son?"

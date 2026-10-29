@@ -68,7 +68,7 @@ class Cascade:
             if first is None:
                 first = result
             else:
-                merged = self.combine(first.extraction, result.extraction)
+                merged = self.combine(first.extraction, result.extraction, ctx.form)
                 result = BrainResult(merged, result.confident, result.brain)
             if result.confident:
                 return result
