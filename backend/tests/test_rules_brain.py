@@ -97,6 +97,20 @@ def test_host_is_not_a_traveller(brain: RulesBrain) -> None:
     assert {p.relation for p in e.travellers} == {"mother", "father"}
 
 
+@pytest.mark.parametrize(
+    ("message", "purpose"),
+    [
+        ("going to Germany for a summer trip", "tourism"),
+        ("winter break in Switzerland with my wife", "tourism"),
+        ("road trip across the USA", "tourism"),
+        ("business trip to Singapore", "business"),
+        ("family trip to Japan", "tourism"),
+    ],
+)
+def test_seasonal_trips_are_tourism(brain: RulesBrain, message: str, purpose: str) -> None:
+    assert ex(brain, message).purpose == purpose
+
+
 def test_negated_values_are_ignored(brain: RulesBrain) -> None:
     ctx = Context(TripForm(country="uk", purpose="tourism"), Asked("confirm"), "confirming")
     e = ex(brain, "business, not tourism", ctx)

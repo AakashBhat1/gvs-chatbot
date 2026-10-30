@@ -188,6 +188,7 @@ tourism = [
     "tourism", "tourist", "tour", "holiday", "holidays", "vacation", "vacations", "sightseeing",
     "honeymoon", "leisure", "ghumne", "ghoomne", "ghumna", "ghoomna", "ghumane", "ghoomane",
     "tourist visa", "family trip", "family holiday", "pleasure",
+    "summer trip", "winter trip", "summer break", "winter break", "road trip", "backpacking",
     "घूमने", "घूमना", "टूरिज़्म", "छुट्टी", "छुट्टियाँ", "हॉलिडे",
 ]
 family_visit = [
