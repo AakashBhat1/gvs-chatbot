@@ -792,6 +792,11 @@ class RulesBrain:
 
     # ------------------------------------------------------------------ result
 
+    @staticmethod
+    def _summary_shown(ctx: Context) -> bool:
+        """There is something to confirm: "ok so i need help" on the first message is not a yes."""
+        return ctx.stage != "collecting" or (ctx.asked is not None and ctx.asked.field == "confirm")
+
     def _build(self, p: _Parse, ctx: Context, message: str) -> Extraction:
         kinds = {s.kind for s in p.spans}
         if "restart" in kinds:
@@ -845,7 +850,7 @@ class RulesBrain:
             intent = "correct" if corrective else "give_details"
         elif "deny" in kinds:
             intent = "correct"
-        elif "confirm" in kinds:
+        elif "confirm" in kinds and self._summary_shown(ctx):
             intent = "confirm"
         else:
             intent = "give_details"

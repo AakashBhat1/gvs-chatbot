@@ -371,6 +371,25 @@ def test_the_prompt_no_longer_teaches_removing_people(real_tree: LoadedTree) -> 
     assert "can't come" not in prompt
 
 
+@pytest.mark.parametrize("message", ["ok", "yes", "ok so i need help in visa but you have to"])
+def test_the_rules_do_not_report_a_confirm_before_there_is_a_summary(
+    message: str, lexicon_brain: RulesBrain
+) -> None:
+    assert lexicon_brain.understand(message, CTX).extraction.intent == "give_details"
+
+
+@pytest.mark.parametrize(
+    "ctx",
+    [
+        Context(THREE, Asked("confirm"), "confirming"),
+        Context(THREE, Asked("confirm"), "collecting"),
+        Context(THREE, Asked("open"), "done"),
+    ],
+)
+def test_the_rules_report_a_confirm_at_the_summary(ctx: Context, lexicon_brain: RulesBrain) -> None:
+    assert lexicon_brain.understand("yes", ctx).extraction.intent == "confirm"
+
+
 def test_the_rules_can_still_remove_someone(lexicon_brain: RulesBrain) -> None:
     ctx = Context(THREE, Asked("confirm"), "confirming")
     result = lexicon_brain.understand("wife won't come", ctx)
