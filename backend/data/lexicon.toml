@@ -276,7 +276,13 @@ confirm = ["yes", "yeah", "yep", "yup", "yea", "correct", "right", "ok", "okay",
 deny = ["no", "nope", "nahi", "nahin", "na", "wrong", "galat", "incorrect", "not correct", "not right"]
 correct_cue = ["instead", "actually", "change", "changed", "rather", "sorry", "but", "balki", "not", "update", "fix", "correction", "matlab"]
 restart = ["start over", "restart", "reset", "new search", "phir se", "dobara", "start again", "clear", "new chat", "begin again", "fresh start"]
-remove = ["not going", "not coming", "isn't going", "isnt going", "isn't coming", "isnt coming", "won't come", "wont come", "won't go", "wont go", "nahi ja raha", "nahi ja rahi", "nahi ja rahe", "nahi aa raha", "nahi aa rahi", "remove", "drop"]
+remove = [
+    "not going", "not coming", "not coming anymore", "isn't going", "isnt going", "isn't coming", "isnt coming",
+    "won't come", "wont come", "won't go", "wont go", "won't be coming", "wont be coming",
+    "can't come", "cant come", "cannot come", "can't come anymore", "cant come anymore", "cannot come anymore",
+    "nahi ja raha", "nahi ja rahi", "nahi ja rahe", "nahi aa raha", "nahi aa rahi", "nahi aayega", "nahi aayegi",
+    "remove", "drop",
+]
 greeting = ["hi", "hello", "hey", "hii", "hiii", "helo", "namaste", "namaskar", "hola", "good morning", "good afternoon", "good evening", "hey there", "ram ram", "sat sri akal"]
 business_word = ["business", "biz"]
 pronoun = ["he", "she", "they", "him", "her", "them", "woh", "wo", "unka", "uska", "his", "their"]

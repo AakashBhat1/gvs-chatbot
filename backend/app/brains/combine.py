@@ -23,8 +23,10 @@ reading is the anchor:
     only recategorised the word ("works in a bank" became government employee).
 
     A model's answer can be steered by the message, so what it may do alone is
-    limited: only the rules can confirm, and with no help from the rules it can
-    remove one person (never the writer) and overwrite one job per message.
+    limited. Only the rules can confirm or remove someone. For a person the rules
+    did not read, a model may only fill the empty job or age the bot just asked
+    about. It may add someone new, but may not overwrite anything already on the
+    form, including the country.
 
 ``fill_blanks``
     The model's answer is used as it is; the rules only fill in a missing
@@ -39,13 +41,14 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from typing import Final
 
-from app.extraction import Extraction, TravellerPatch
+from app.extraction import Asked, Extraction, TravellerPatch
 from app.form import MAX_TRAVELLERS, TripForm
 
-# (rules' answer, later brain's answer, the form so far, the bot asked for the purpose)
-Combine = Callable[[Extraction, Extraction, TripForm, bool], Extraction]
+# (rules' answer, later brain's answer, the form so far, what the bot last asked)
+Combine = Callable[[Extraction, Extraction, TripForm, Asked | None], Extraction]
 
 _DETAILS: Final = ("profession", "age", "country", "purpose")
+_ANSWERABLE: Final = ("profession", "age")
 BABY: Final = "infant"
 
 
@@ -53,7 +56,7 @@ def fill_blanks(
     rules: Extraction,
     model: Extraction,
     form: TripForm | None = None,
-    asked_purpose: bool = False,
+    asked: Asked | None = None,
 ) -> Extraction:
     if not model.on_topic or model.intent == "restart":
         return model
@@ -91,31 +94,52 @@ def _keep_rules_reading(
     return merged.model_copy(update=update) if update else merged
 
 
-def _modest_edits(patches: Sequence[TravellerPatch], form: TripForm) -> list[TravellerPatch]:
-    """What a model may change on its own: see the module docstring."""
+def _still_unanswered(form: TripForm, asked: Asked | None) -> list[int]:
+    """The people the bot just asked about whose job or age is still empty."""
+    if asked is None or asked.field not in _ANSWERABLE:
+        return []
     people = form.travellers
-    removed = overwritten = False
+    return [
+        i for i in asked.travellers if i < len(people) and getattr(people[i], asked.field) is None
+    ]
+
+
+def _model_alone(
+    patches: Sequence[TravellerPatch], form: TripForm, asked: Asked | None
+) -> list[TravellerPatch]:
+    """What a model may do for people the rules did not read: see the module docstring.
+
+    A patch is about someone on the form by ref or by relation: ``merge`` finds people
+    by either, so checking refs alone would let ``{"relation": "self"}`` overwrite the writer.
+    """
+    people = form.travellers
+    known = {t.relation for t in people}
+    open_refs = _still_unanswered(form, asked)
     out: list[TravellerPatch] = []
     for patch in patches:
-        current = people[patch.ref] if patch.ref is not None and patch.ref < len(people) else None
-        if patch.remove:
-            if removed or current is None or current.relation == "self":
-                continue
-            removed = True
-        elif (
-            current is not None
-            and patch.profession is not None
-            and current.profession not in (None, patch.profession)
-        ):
-            if overwritten:
-                patch = patch.model_copy(update={"profession": None})  # noqa: PLW2901
-            overwritten = True
-        out.append(patch)
+        on_form = patch.ref is not None and patch.ref < len(people)
+        if not on_form and patch.relation not in known:
+            if patch.relation is not None and not patch.remove:
+                out.append(patch)  # someone new
+            continue
+        who = next(
+            (
+                i
+                for i in open_refs
+                if i == patch.ref or (not on_form and people[i].relation == patch.relation)
+            ),
+            None,
+        )
+        value = getattr(patch, asked.field) if who is not None and asked is not None else None
+        if who is None or asked is None or value is None:
+            continue
+        open_refs = [i for i in open_refs if i != who]
+        out.append(TravellerPatch.model_validate({"ref": who, asked.field: value}))
     return out
 
 
 def _people(
-    rules: Extraction, model: Extraction, form: TripForm, *, asked_purpose: bool
+    rules: Extraction, model: Extraction, form: TripForm, asked: Asked | None
 ) -> tuple[TravellerPatch, ...]:
     """The rules decide who; the model decides their details.
 
@@ -125,12 +149,12 @@ def _people(
     entry with no rules counterpart is kept only if it updates someone already
     in the form; a new person only the model saw is dropped.
     """
-    if not asked_purpose:
+    if asked is None or asked.field != "purpose":
         model = model.model_copy(
             update={"travellers": tuple(_without_purpose(p) for p in model.travellers)}
         )
     if not rules.travellers:  # the rules saw nobody: nothing to check against
-        return tuple(_modest_edits(model.travellers, form)[:MAX_TRAVELLERS])
+        return tuple(_model_alone(model.travellers, form, asked)[:MAX_TRAVELLERS])
 
     def who(p: TravellerPatch) -> str | None:
         if p.ref is not None and p.ref < len(form.travellers):
@@ -155,11 +179,9 @@ def _people(
             continue
         left.remove(theirs)
         ref = theirs.ref if theirs.ref is not None else mine.ref
-        merged = _fill(theirs, mine).model_copy(
-            update={"ref": ref, "remove": theirs.remove or mine.remove}
-        )
+        merged = _fill(theirs, mine).model_copy(update={"ref": ref, "remove": mine.remove})
         out.append(_keep_rules_reading(merged, mine, model_jobs))
-    out += _modest_edits([p for p in left if p.ref is not None], form)
+    out += _model_alone([p for p in left if p.ref is not None], form, asked)
     return tuple(out[:MAX_TRAVELLERS])  # the rules' people come first
 
 
@@ -173,7 +195,7 @@ def rules_precede(
     rules: Extraction,
     model: Extraction,
     form: TripForm | None = None,
-    asked_purpose: bool = False,
+    asked: Asked | None = None,
 ) -> Extraction:
     """See the module docstring. Off-topic is the model's call (it reads questions
     better), unless the rules found at least two kinds of trip detail."""
@@ -183,16 +205,19 @@ def rules_precede(
     if not on_topic:
         # "what's the best time to visit Japan": a question, not a trip; keep nothing
         return Extraction(on_topic=False, asks_office=rules.asks_office or model.asks_office)
-    people = _people(rules, model, form or TripForm(), asked_purpose=asked_purpose)
+    so_far = form or TripForm()
+    people = _people(rules, model, so_far, asked)
     group = rules.group_of or model.group_of
     if group is not None and any(p.relation == group for p in people):
         group = None
+    asked_purpose = asked is not None and asked.field == "purpose"
     can_use_model_purpose = asked_purpose and not rules.purpose_choices
+    model_country = None if rules.other_country or so_far.country else model.country
     model_intent = "give_details" if model.intent == "confirm" else model.intent
     return Extraction(
         on_topic=True,
         intent=rules.intent if rules.intent != "give_details" else model_intent,
-        country=rules.country or (None if rules.other_country else model.country),
+        country=rules.country or model_country,
         purpose=rules.purpose or (model.purpose if can_use_model_purpose else None),
         traveller_count=rules.traveller_count or model.traveller_count,
         travellers=people,

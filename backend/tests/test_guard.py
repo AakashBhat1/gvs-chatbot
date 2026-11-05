@@ -8,6 +8,7 @@ import pytest
 
 from app.brains import BrainResult, Cascade
 from app.brains.combine import rules_precede
+from app.brains.local import system_prompt
 from app.brains.rules import RulesBrain
 from app.chat import ChatEngine, ChatState
 from app.extraction import Asked, Context, Extraction
@@ -148,10 +149,21 @@ THREE = TripForm(
 )
 
 
+NO_JOBS = TripForm(
+    country="france",
+    purpose="tourism",
+    travellers=(
+        Traveller(relation="self"),
+        Traveller(relation="spouse"),
+        Traveller(relation="mother"),
+    ),
+)
+
+
 def test_more_than_eight_people_does_not_crash() -> None:
     rules = _ex(travellers=[{"relation": "friend_colleague"}] * 7)
-    model = _ex(travellers=[{"ref": 0}, {"ref": 1}, {"ref": 2}])
-    merged = rules_precede(rules, model, THREE)
+    model = _ex(travellers=[{"ref": i, "profession": "farmer"} for i in range(3)])
+    merged = rules_precede(rules, model, NO_JOBS, Asked("profession", (0, 1, 2)))
     assert len(merged.travellers) == 8
     assert all(p.relation == "friend_colleague" for p in merged.travellers[:7])
 
@@ -161,32 +173,144 @@ def test_only_the_rules_can_confirm() -> None:
     assert rules_precede(_ex(intent="confirm"), _ex(), THREE).intent == "confirm"
 
 
-def test_a_model_alone_cannot_remove_the_writer() -> None:
-    model = _ex(travellers=[{"ref": 0, "remove": True}])
-    assert rules_precede(_ex(), model, THREE).travellers == ()
+@pytest.mark.parametrize(
+    "patch",
+    [
+        {"ref": 0, "remove": True},
+        {"ref": 1, "remove": True},
+        {"relation": "self", "remove": True},
+        {"relation": "spouse", "remove": True},
+    ],
+)
+def test_a_model_alone_cannot_remove_anyone(patch: dict[str, object]) -> None:
+    assert rules_precede(_ex(), _ex(travellers=[patch]), THREE).travellers == ()
 
 
-def test_a_model_alone_removes_at_most_one_person() -> None:
-    model = _ex(travellers=[{"ref": 1, "remove": True}, {"ref": 2, "remove": True}])
-    assert [p.ref for p in rules_precede(_ex(), model, THREE).travellers] == [1]
+def test_a_model_cannot_remove_someone_the_rules_only_named() -> None:
+    rules = _ex(travellers=[{"relation": "spouse"}])
+    model = _ex(travellers=[{"relation": "spouse", "remove": True}])
+    assert not rules_precede(rules, model, THREE).travellers[0].remove
 
 
-def test_a_model_alone_overwrites_at_most_one_job() -> None:
-    model = _ex(
-        travellers=[
-            {"ref": 0, "profession": "farmer"},
-            {"ref": 1, "profession": "farmer"},
-            {"ref": 2, "profession": "farmer"},  # the son has no job yet: this fills a gap
-        ]
-    )
-    jobs = {p.ref: p.profession for p in rules_precede(_ex(), model, THREE).travellers}
-    assert jobs == {0: "farmer", 1: None, 2: "farmer"}
+@pytest.mark.parametrize(
+    "patch",
+    [
+        {"ref": 0, "profession": "farmer"},
+        {"relation": "self", "profession": "farmer"},
+        {"relation": "spouse", "profession": "farmer"},
+        {"ref": 2, "profession": "farmer"},  # the son has no job yet, but nobody asked
+        {"ref": 2, "age": 99},
+        {"relation": "son", "age": 99},
+        {"ref": 1, "country": "japan"},
+    ],
+)
+def test_a_model_alone_cannot_edit_anyone_at_the_summary(patch: dict[str, object]) -> None:
+    merged = rules_precede(_ex(), _ex(travellers=[patch]), THREE, Asked("confirm"))
+    assert merged.travellers == ()
+
+
+def test_a_model_fills_the_job_the_bot_asked_about() -> None:
+    model = _ex(travellers=[{"ref": 1, "profession": "retired", "age": 70}])
+    merged = rules_precede(_ex(), model, NO_JOBS, Asked("profession", (1,)))
+    assert [(p.ref, p.profession, p.age) for p in merged.travellers] == [(1, "retired", None)]
+
+
+def test_a_model_fills_the_asked_job_by_relation_too() -> None:
+    model = _ex(travellers=[{"relation": "mother", "profession": "retired"}])
+    merged = rules_precede(_ex(), model, NO_JOBS, Asked("profession", (2,)))
+    assert [(p.ref, p.profession) for p in merged.travellers] == [(2, "retired")]
+
+
+def test_a_model_fills_the_asked_age_only() -> None:
+    form = TripForm(travellers=(Traveller(relation="self"), Traveller(relation="son")))
+    model = _ex(travellers=[{"ref": 1, "age": 6, "profession": "farmer"}])
+    merged = rules_precede(_ex(), model, form, Asked("age", (1,)))
+    assert [(p.ref, p.age, p.profession) for p in merged.travellers] == [(1, 6, None)]
+
+
+def test_a_model_cannot_fill_for_someone_the_bot_did_not_ask_about() -> None:
+    model = _ex(travellers=[{"ref": 0, "profession": "farmer"}, {"ref": 1, "profession": "farmer"}])
+    merged = rules_precede(_ex(), model, NO_JOBS, Asked("profession", (1,)))
+    assert [p.ref for p in merged.travellers] == [1]
+
+
+def test_a_model_cannot_answer_for_someone_who_already_answered() -> None:
+    form = TripForm(travellers=(Traveller(relation="self", profession="employed"),))
+    model = _ex(travellers=[{"ref": 0, "profession": "farmer"}])
+    assert rules_precede(_ex(), model, form, Asked("profession", (0,))).travellers == ()
+
+
+def test_a_ref_past_the_end_of_the_form_is_ignored_as_an_answer() -> None:
+    model = _ex(travellers=[{"ref": 7, "profession": "farmer"}])
+    assert rules_precede(_ex(), model, NO_JOBS, Asked("profession", (7,))).travellers == ()
+
+
+def test_a_model_can_still_add_someone_new() -> None:
+    model = _ex(travellers=[{"relation": "father"}])
+    merged = rules_precede(_ex(), model, THREE, Asked("confirm"))
+    assert [p.relation for p in merged.travellers] == ["father"]
+
+
+def test_a_model_cannot_change_a_country_already_on_the_form() -> None:
+    assert rules_precede(_ex(), _ex(country="japan"), THREE, Asked("confirm")).country is None
+    assert rules_precede(_ex(), _ex(country="japan"), TripForm()).country == "japan"
+    assert rules_precede(_ex(country="spain"), _ex(), THREE).country == "spain"
+
+
+def test_the_prompt_no_longer_teaches_removing_people(real_tree: LoadedTree) -> None:
+    prompt = system_prompt(real_tree)
+    assert '"remove"' not in prompt
+    assert "can't come" not in prompt
 
 
 def test_the_rules_can_still_remove_someone(lexicon_brain: RulesBrain) -> None:
     ctx = Context(THREE, Asked("confirm"), "confirming")
     result = lexicon_brain.understand("wife won't come", ctx)
     assert any(p.remove for p in result.extraction.travellers)
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "my wife can't come",
+        "my wife can't come anymore",
+        "my wife cant come",
+        "my wife cannot come",
+        "my wife is not coming anymore",
+        "my wife won't be coming",
+        "my wife wont be coming",
+        "wife nahi aayegi",
+        "she can't come anymore",
+    ],
+)
+def test_ordinary_ways_of_dropping_someone_are_read_by_the_rules(
+    message: str, lexicon_brain: RulesBrain
+) -> None:
+    ctx = Context(THREE, Asked("confirm"), "confirming")
+    ex = lexicon_brain.understand(message, ctx).extraction
+    assert [p.remove for p in ex.travellers] == [True]
+    assert ex.intent == "correct"
+
+
+def test_son_nahi_aayega_is_read_by_the_rules(lexicon_brain: RulesBrain) -> None:
+    ctx = Context(THREE, Asked("confirm"), "confirming")
+    ex = lexicon_brain.understand("beta nahi aayega", ctx).extraction
+    assert [(p.relation, p.remove) for p in ex.travellers] == [("son", True)]
+
+
+def test_a_correction_through_a_pronoun_still_works(lexicon_brain: RulesBrain) -> None:
+    form = TripForm(
+        country="france",
+        purpose="tourism",
+        travellers=(
+            Traveller(relation="self", profession="employed"),
+            Traveller(relation="spouse", profession="homemaker"),
+        ),
+    )
+    ctx = Context(form, Asked("confirm"), "confirming")
+    ex = lexicon_brain.understand("she is a teacher actually", ctx).extraction
+    assert [(p.ref, p.profession) for p in ex.travellers] == [(1, "employed")]
+    assert ex.intent == "correct"
 
 
 # ----------------------------------------------------------------- through the whole bot

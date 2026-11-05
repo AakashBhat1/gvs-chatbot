@@ -78,11 +78,8 @@ class Cascade:
             if first is None:
                 first = result
             else:
-                asked_purpose = ctx.asked is not None and ctx.asked.field == "purpose"
                 try:
-                    merged = self.combine(
-                        first.extraction, result.extraction, ctx.form, asked_purpose
-                    )
+                    merged = self.combine(first.extraction, result.extraction, ctx.form, ctx.asked)
                 except ValueError:  # a bad merge must never take the bot down
                     log.exception("could not merge the answer from brain %s", brain.name)
                     continue

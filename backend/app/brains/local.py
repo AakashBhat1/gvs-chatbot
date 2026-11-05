@@ -169,8 +169,7 @@ message says "other". Give a job only to the person it is said about: "with my \
 wife" says nothing about her job.
 - age: a number next to a person is their age ("son 6", "me 40", "(35)", "10 year \
 old son", "5 saal ka"). A baby or newborn gets profession "infant" and no age.
-- Someone already in the form is given by "ref", not as a new entry. To drop \
-someone: {"ref": N, "remove": true}.
+- Someone already in the form is given by "ref", not as a new entry.
 - Put country or purpose on a person only if that person goes elsewhere or for \
 another reason. Never repeat the trip's own country or purpose there.
 - traveller_count: total going, writer included, when a number is given \
@@ -188,7 +187,7 @@ pending_group relation.
 - "that's all", "no one else", "just me" after "who else": traveller_count = \
 everyone in the form plus anyone new in this message.
 - intent: "confirm" only for yes / ok / correct; "correct" for no / wrong, or \
-when changing or removing someone already in the form; "restart" to start over; \
+when changing someone already in the form; "restart" to start over; \
 otherwise "give_details" (adding a new person is give_details).
 
 Other
@@ -227,12 +226,6 @@ EXAMPLES: Final = (
         "profession for refs [1]",
         "she is retired, and papa is coming too",
         '{"travellers":[{"ref":1,"profession":"retired"},{"relation":"father"}]}',
-    ),
-    (
-        _ME_AND_MOM,
-        "confirm",
-        "my mother can't come anymore",
-        '{"intent":"correct","travellers":[{"ref":1,"remove":true}]}',
     ),
     (
         "{}",

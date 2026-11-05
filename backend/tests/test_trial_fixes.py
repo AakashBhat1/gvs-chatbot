@@ -64,7 +64,7 @@ def test_the_rules_purpose_is_kept() -> None:
 
 
 def test_the_model_answers_when_the_bot_asked_for_the_purpose() -> None:
-    merged = rules_precede(_ex(), _ex(purpose="family_visit"), None, True)
+    merged = rules_precede(_ex(), _ex(purpose="family_visit"), None, Asked("purpose"))
     assert merged.purpose == "family_visit"
 
 
