@@ -15,8 +15,9 @@ from pydantic import BaseModel, ConfigDict, Field, StrictInt
 from app.tree import Id, LoadedTree
 
 MAX_TRAVELLERS: Final = 8
+MAX_AGE: Final = 110
 
-Age = Annotated[StrictInt, Field(ge=0, le=110)]
+Age = Annotated[StrictInt, Field(ge=0, le=MAX_AGE)]
 
 
 class Traveller(BaseModel):

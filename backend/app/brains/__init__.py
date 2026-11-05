@@ -72,6 +72,9 @@ class Cascade:
             except BrainUnavailable as exc:
                 log.warning("brain %s unavailable: %s", brain.name, exc)
                 continue
+            except ValueError as exc:  # only the type: a ValidationError's text quotes its input
+                log.warning("brain %s gave a bad answer: %s", brain.name, type(exc).__name__)
+                continue
             if first is None:
                 first = result
             else:

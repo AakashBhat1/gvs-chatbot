@@ -24,7 +24,7 @@ from typing import Final
 from app.brains import BrainResult
 from app.brains.lexicon import Lexicon
 from app.extraction import MAX_COUNT, Context, Extraction, Intent, TravellerPatch
-from app.form import MAX_TRAVELLERS
+from app.form import MAX_AGE, MAX_TRAVELLERS
 from app.hindi import romanize
 from app.text import has_devanagari, tokenize
 
@@ -536,12 +536,11 @@ class RulesBrain:
             if years is None:
                 if self._group_size(p, ctx, value):
                     continue
-                years = value
-                if self._context_ref(p, ctx, "age", years):
+                if value <= MAX_AGE and self._context_ref(p, ctx, "age", value):
                     continue
                 p.ambiguous += 1
                 continue
-            if years > 110:
+            if years > MAX_AGE:
                 p.ambiguous += 1
                 continue
             if target is None:

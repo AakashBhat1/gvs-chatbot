@@ -199,6 +199,70 @@ def lexicon_brain(real_tree: LoadedTree) -> RulesBrain:
     return RulesBrain(load_lexicon(default_lexicon_path(), real_tree))
 
 
+SON_NEXT = TripForm(
+    country="france",
+    purpose="tourism",
+    travellers=(Traveller(relation="self", profession="employed"), Traveller(relation="son")),
+)
+
+
+def _at_age_question(tree: LoadedTree) -> ChatState:
+    return ChatState(
+        form=SON_NEXT, asked_field="age", asked_travellers=(1,), tree_version=tree.version
+    )
+
+
+@pytest.mark.parametrize("answer", ["999", "111", "1000"])
+def test_an_impossible_age_is_asked_again(
+    answer: str, lexicon_brain: RulesBrain, real_tree: LoadedTree
+) -> None:
+    engine = ChatEngine(lambda: real_tree, Cascade([lexicon_brain]))
+    new, reply = engine.handle(_at_age_question(real_tree), text=answer)
+    assert new.form == SON_NEXT
+    assert new.asked_field == "age"
+    assert "How old" in reply.text
+
+
+@pytest.mark.parametrize(("answer", "age"), [("0", 0), ("110", 110)])
+def test_the_oldest_and_youngest_ages_are_kept(
+    answer: str, age: int, lexicon_brain: RulesBrain, real_tree: LoadedTree
+) -> None:
+    engine = ChatEngine(lambda: real_tree, Cascade([lexicon_brain]))
+    new, _ = engine.handle(_at_age_question(real_tree), text=answer)
+    assert new.form.travellers[1].age == age
+
+
+class _Broken:
+    name = "broken"
+
+    def __init__(self, error: Exception) -> None:
+        self.error = error
+
+    def understand(self, message: str, ctx: Context) -> BrainResult:
+        raise self.error
+
+
+def test_a_brain_that_raises_is_skipped_and_the_message_is_not_logged(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    broken = _Broken(ValueError("bad value: secret-words"))
+    with caplog.at_level(logging.WARNING):
+        result = Cascade([broken, _Says("local", _ex(country="uk"))]).understand(
+            "secret-words", CTX
+        )
+    assert result.extraction.country == "uk"
+    assert "broken" in caplog.text
+    assert "secret-words" not in caplog.text
+
+
+def test_when_every_brain_raises_the_bot_falls_back_to_buttons(real_tree: LoadedTree) -> None:
+    engine = ChatEngine(lambda: real_tree, Cascade([_Broken(ValueError("bad"))]))
+    state, _ = engine.start()
+    new, reply = engine.handle(state, text="hello")
+    assert new.form == TripForm()
+    assert reply.buttons
+
+
 def test_an_attack_at_the_summary_changes_nothing(
     lexicon_brain: RulesBrain, real_tree: LoadedTree
 ) -> None:
