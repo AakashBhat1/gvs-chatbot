@@ -23,7 +23,7 @@ from app.brains import Brain, BrainResult
 from app.brains.factory import brain_names, build_cascade
 from app.brains.lexicon import load_lexicon
 from app.chat import BotReply, ChatEngine, ChatState
-from app.evaluate import DEFAULT_SET, FIELDS, Case, load_cases, run_case, score
+from app.evaluate import DEFAULT_SET, FIELDS, Case, Outcome, load_cases, run_case, score
 from app.extraction import Context
 from app.paths import default_lexicon_path, default_tree_path
 from app.resolver import Checklist
@@ -85,6 +85,24 @@ def _reply_for(
     return reply, reply.checklist
 
 
+def _crash_row(case: Case, exc: Exception) -> dict[str, Any]:
+    first_line = str(exc).splitlines()[0] if str(exc) else ""
+    return {
+        "id": case.id,
+        "message": case.message,
+        "exact": False,
+        "wrong": ["crash"],
+        "brain": "",
+        "confident": False,
+        "seconds": 0.0,
+        "got": case.context.form.model_dump(exclude_defaults=True),
+        "want": case.expect.form.model_dump(exclude_defaults=True),
+        "reply": f"CRASH {type(exc).__name__}: {first_line}",
+        "buttons": [],
+        "checklist": [],
+    }
+
+
 def run(
     brain: Brain, cases: Sequence[Case], tree: LoadedTree, ask_age: frozenset[str]
 ) -> dict[str, Any]:
@@ -93,9 +111,14 @@ def run(
     outcomes, rows = [], []
     for case in cases:
         recording.last_seconds = 0.0
-        outcome = run_case(recording, case, tree)
-        answered_by, seconds = recording.last_brain, recording.last_seconds
-        reply, checklist = _reply_for(case, engine, tree)
+        try:
+            outcome = run_case(recording, case, tree)
+            answered_by, seconds = recording.last_brain, recording.last_seconds
+            reply, checklist = _reply_for(case, engine, tree)
+        except Exception as exc:  # a crash is a result to report, not a reason to stop
+            outcomes.append(Outcome(case, case.context.form, "crash", True, False))
+            rows.append(_crash_row(case, exc))
+            continue
         outcomes.append(outcome)
         rows.append(
             {

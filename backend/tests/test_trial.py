@@ -5,6 +5,10 @@ from pathlib import Path
 
 import pytest
 
+from app.brains import BrainResult
+from app.evaluate import Case
+from app.extraction import Context
+from app.tree import LoadedTree
 from tools import trial
 
 CASES = [
@@ -52,6 +56,21 @@ def test_trial_saves_replies_checklists_and_comparison(case_set: Path, tmp_path:
     assert "| miss | Japan | country | country |" in report
     assert "### miss [MISS] Japan" in report
     assert "bot said: Here's the summary:" in report
+
+
+class _Crashes:
+    name = "crashes"
+
+    def understand(self, message: str, ctx: Context) -> BrainResult:
+        raise ValueError("boom\nsecond line")
+
+
+def test_a_crash_is_recorded_and_the_run_continues(real_tree: LoadedTree) -> None:
+    cases = [Case.model_validate(c) for c in CASES]
+    result = trial.run(_Crashes(), cases, real_tree, frozenset())
+    assert [r["wrong"] for r in result["rows"]] == [["crash"], ["crash"]]
+    assert result["rows"][0]["reply"] == "CRASH ValueError: boom"
+    assert result["scores"]["exact"] == 0
 
 
 def test_compare_needs_runs(tmp_path: Path) -> None:
