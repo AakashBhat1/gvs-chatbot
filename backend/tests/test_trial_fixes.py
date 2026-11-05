@@ -94,6 +94,42 @@ def test_cascade_tells_the_combiner_what_was_asked(
     assert cascade.understand("x", ctx).extraction.purpose == expected
 
 
+# ----------------------------------------------------------------- whose word wins on a job
+
+
+def test_a_model_cannot_recategorise_the_job_the_rules_read() -> None:
+    rules = _ex(travellers=[{"relation": "spouse", "profession": "employed"}])
+    model = _ex(travellers=[{"relation": "spouse", "profession": "government_employee"}])
+    assert rules_precede(rules, model).travellers[0].profession == "employed"
+
+
+def test_a_model_can_still_move_a_job_to_the_right_person() -> None:
+    rules = _ex(
+        travellers=[{"relation": "self"}, {"relation": "spouse", "profession": "business_owner"}]
+    )
+    model = _ex(
+        travellers=[
+            {"relation": "self", "profession": "business_owner"},
+            {"relation": "spouse", "profession": "employed"},
+        ]
+    )
+    merged = rules_precede(rules, model).travellers
+    assert [t.profession for t in merged] == ["business_owner", "employed"]
+
+
+def test_a_model_fills_a_job_the_rules_did_not_read() -> None:
+    rules = _ex(travellers=[{"relation": "self"}])
+    model = _ex(travellers=[{"relation": "self", "profession": "farmer"}])
+    assert rules_precede(rules, model).travellers[0].profession == "farmer"
+
+
+def test_months_read_as_an_age_do_not_turn_a_baby_into_a_school_child() -> None:
+    rules = _ex(travellers=[{"relation": "child", "profession": "infant"}])
+    model = _ex(travellers=[{"relation": "child", "age": 5}])
+    merged = rules_precede(rules, model).travellers[0]
+    assert (merged.profession, merged.age) == ("infant", None)
+
+
 # ----------------------------------------------------------------- who is travelling
 
 
@@ -122,6 +158,11 @@ def test_a_baby_with_nobody_before_it_is_a_child(brain: RulesBrain) -> None:
     e = read(brain, "Baby is 8 months old, wife and me going to Italy")
     assert who(e) == [("child", "infant"), ("self", None), ("spouse", None)]
     assert all(t.age is None for t in e.travellers)
+
+
+def test_our_baby_is_a_child_not_a_job_for_the_parents(brain: RulesBrain) -> None:
+    e = read(brain, "My wife and our baby are going to Rome")
+    assert who(e) == [("child", "infant"), ("self", None), ("spouse", None)]
 
 
 def test_a_baby_after_a_person_describes_them(brain: RulesBrain) -> None:

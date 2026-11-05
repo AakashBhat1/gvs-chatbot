@@ -18,6 +18,10 @@ reading is the anchor:
     business trip), a wrong one changes the documents, and asking costs one
     question.
 
+    The model may move a job the rules read to the right person, but may not
+    swap it for another: if that job appears nowhere in the model's answer, it
+    only recategorised the word ("works in a bank" became government employee).
+
 ``fill_blanks``
     The model's answer is used as it is; the rules only fill in a missing
     country or purpose. This was the behaviour before ``rules_precede``.
@@ -38,6 +42,7 @@ from app.form import TripForm
 Combine = Callable[[Extraction, Extraction, TripForm, bool], Extraction]
 
 _DETAILS: Final = ("profession", "age", "country", "purpose")
+BABY: Final = "infant"
 
 
 def fill_blanks(
@@ -70,6 +75,18 @@ def _without_purpose(patch: TravellerPatch) -> TravellerPatch:
     return patch.model_copy(update={"purpose": None}) if patch.purpose is not None else patch
 
 
+def _keep_rules_reading(
+    merged: TravellerPatch, mine: TravellerPatch, model_jobs: set[str | None]
+) -> TravellerPatch:
+    """Undo a model's recategorised job, and an age it read from "5 months" on a baby."""
+    update: dict[str, object] = {}
+    if mine.profession is not None and mine.profession not in model_jobs:
+        update["profession"] = mine.profession
+    if mine.profession == BABY and mine.age is None and merged.age is not None:
+        update["age"] = None
+    return merged.model_copy(update=update) if update else merged
+
+
 def _people(
     rules: Extraction, model: Extraction, form: TripForm, *, asked_purpose: bool
 ) -> tuple[TravellerPatch, ...]:
@@ -94,6 +111,7 @@ def _people(
         return p.relation
 
     left = list(model.travellers)
+    model_jobs = {p.profession for p in model.travellers}
     out: list[TravellerPatch] = []
     for mine in rules.travellers:
         theirs = next((p for p in left if mine.ref is not None and p.ref == mine.ref), None)
@@ -113,7 +131,7 @@ def _people(
         merged = _fill(theirs, mine).model_copy(
             update={"ref": ref, "remove": theirs.remove or mine.remove}
         )
-        out.append(merged)
+        out.append(_keep_rules_reading(merged, mine, model_jobs))
     out += [p for p in left if p.ref is not None]
     return tuple(out)
 

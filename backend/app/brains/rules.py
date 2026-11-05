@@ -241,9 +241,9 @@ class RulesBrain:
             if s.kind != "profession" or s.value != BABY:
                 continue
             nxt = p.spans[k + 1] if k + 1 < len(p.spans) else None
-            someone_before = any(
-                b.kind in PERSON_KINDS and b.segment == s.segment for b in p.spans[:k]
-            )
+            # "our baby": 'our' only says whose baby it is.
+            before = p.spans[: k - 1] if k and p.spans[k - 1].tokens == ("our",) else p.spans[:k]
+            someone_before = any(b.kind in PERSON_KINDS and b.segment == s.segment for b in before)
             if not someone_before and (nxt is None or nxt.kind not in PERSON_KINDS):
                 s.kind, s.value = "relation", "child"
 
