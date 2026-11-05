@@ -54,7 +54,8 @@ def test_parse_rule_key_rejects_malformed(raw: str) -> None:
 
 
 def test_real_tree_loads(real_tree: Any) -> None:
-    assert len(real_tree.data.countries) == 15
+    assert len(real_tree.data.countries) == 38
+    assert sum(c.listed for c in real_tree.data.countries.values()) == 15
     assert len(real_tree.data.purposes) == 3
     assert len(real_tree.data.professions) == 17
     assert len(real_tree.data.relations) == 10
@@ -99,6 +100,16 @@ def test_mini_tree_compiles_family_and_groups(mini_tree: Any) -> None:
         (lambda t: t["relation_groups"].update({"kids": []}), "must not be empty"),
         (lambda t: t["relation_groups"].update({"kids": ["nephew"]}), "unknown relation"),
         (lambda t: t["documents"]["passport"].update({"label": "  "}), "at least 1"),
+        (lambda t: t.update({"own_checklists": {"mars": []}}), "unknown country"),
+        (lambda t: t.update({"own_checklists": {"jp": ["mars"]}}), "unknown country"),
+        (lambda t: t.update({"own_checklists": {"jp": ["jp"]}}), "already owns"),
+        (
+            lambda t: t.update({"own_checklists": {"jp": ["uk"], "uk": []}}),
+            "already owns",
+        ),
+        (lambda t: t.update({"own_checklists": {"uk": ["jp"]}}), "rules.jp: ignored"),
+        (lambda t: t.update({"own_checklists": {"uk": []}}), "own_checklists.uk: no rules"),
+        (lambda t: t["countries"]["jp"].update({"notes": [" "]}), "at least 1"),
     ],
 )
 def test_invalid_trees_rejected(
@@ -107,6 +118,12 @@ def test_invalid_trees_rejected(
     mutate(mini_dict)
     with pytest.raises(TreeError, match=message):
         parse_tree(as_bytes(mini_dict))
+
+
+def test_own_checklists_map_each_member_to_its_owner(mini_dict: dict[str, Any]) -> None:
+    mini_dict["own_checklists"] = {"jp": ["uk"]}
+    tree = parse_tree(as_bytes(mini_dict))
+    assert tree.own_checklist == {"jp": "jp", "uk": "jp"}
 
 
 def test_duplicate_json_keys_rejected() -> None:

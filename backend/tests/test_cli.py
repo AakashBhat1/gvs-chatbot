@@ -42,6 +42,19 @@ def test_resolve_text_output(capsys: pytest.CaptureFixture[str]) -> None:
     assert "WARNING: document data status is 'placeholder'" in out
 
 
+def test_resolve_prints_country_notes_and_document_notes(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    code = cli.main(
+        ["--country", "france", "--purpose", "tourism", "-t", "relation=self,profession=employed"]
+    )
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "Note: Visa fee, payable at VFS" in out
+    assert "      Issued within the last 10 years" in out
+    assert out.count("[PLACEHOLDER]") == 1  # the visa application form
+
+
 def test_resolve_json_output(capsys: pytest.CaptureFixture[str]) -> None:
     code = cli.main(
         [
@@ -128,7 +141,7 @@ def test_check_real_tree_passes_dev_mode(capsys: pytest.CaptureFixture[str]) -> 
     assert check_tree.main([], today=TODAY) == 0
     captured = capsys.readouterr()
     assert captured.out.startswith("OK")
-    assert "15 countries, 3 purposes, 17 professions, 10 relations" in captured.out
+    assert "38 countries, 3 purposes, 17 professions, 10 relations" in captured.out
     assert "never been reviewed" in captured.err  # warned, not failed
 
 

@@ -123,6 +123,46 @@ def test_fee_questions_go_to_the_office(engine: ChatEngine) -> None:
     assert state.stage == "confirming"  # a question mid-summary keeps the summary
 
 
+def test_schengen_fee_question_gets_the_fee(engine: ChatEngine) -> None:
+    state, r = play(engine, "how much is the fee for a france visa")
+    assert state.form.country == "france"
+    assert r[1].text.startswith("Visa fee, payable at VFS: adults EUR 90")
+    expected = f"Processing times and appointments are handled by our office: {SITE}/contact."
+    assert expected in r[1].text
+    assert T.OFFICE not in r[1].text
+
+
+def test_fee_question_before_a_country_goes_to_the_office(engine: ChatEngine) -> None:
+    _, r = play(engine, "how much is the visa fee")
+    assert r[1].text.startswith(T.OFFICE)
+
+
+@pytest.mark.parametrize(
+    ("message", "country"),
+    [
+        ("going to austria for a holiday", "austria"),
+        ("holiday in amsterdam", "netherlands"),
+        ("tourist trip to prague", "czech-republic"),
+        ("visiting latvia for a holiday", "schengen"),
+    ],
+)
+def test_every_schengen_member_gets_a_checklist(
+    engine: ChatEngine, message: str, country: str
+) -> None:
+    state, r = play(engine, message, "just me", "retired", "yes")
+    assert state.form.country == country
+    assert not any("don't have a checklist" in reply.text for reply in r)
+    assert r[-1].checklist is not None
+    docs = [d.id for d in r[-1].checklist.groups[0].travellers[0].documents]
+    assert "sch_pension_order" in docs
+
+
+def test_unlisted_countries_stay_off_the_buttons_and_help(real_tree: LoadedTree) -> None:
+    assert len(T.country_buttons(real_tree)) == 15
+    assert "Austria" not in T.help_text(real_tree)
+    assert "Schengen Area (Europe)" in T.help_text(real_tree)
+
+
 def test_with_family_then_names(engine: ChatEngine) -> None:
     state, r = play(
         engine,

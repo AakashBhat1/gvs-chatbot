@@ -159,6 +159,212 @@ def test_traveller_rejects_bad_values(bad: dict[str, object]) -> None:
         Traveller.model_validate({"relation": "self", **bad})
 
 
+# ----------------------------------------------------------------- own checklists
+
+
+@pytest.fixture
+def own_tree(mini_dict: dict[str, Any], write_tree: Callable[[dict[str, Any]], Path]) -> LoadedTree:
+    """Japan owns a checklist that the UK shares; a third country stays generic."""
+    mini_dict["countries"]["jp"]["fee"] = "Fee: 10"
+    mini_dict["countries"]["jp"]["notes"] = ["Originals only"]
+    mini_dict["countries"]["us"] = {"name": "USA"}
+    mini_dict["own_checklists"] = {"jp": ["uk"]}
+    mini_dict["documents"]["jp_salary"] = {"label": "Japan salary proof", "note": "Attested"}
+    mini_dict["rules"]["jp/*/employed"] = ["jp_salary"]
+    return load_tree(write_tree(mini_dict))
+
+
+@pytest.mark.parametrize("country", ["jp", "uk"])
+def test_own_checklist_replaces_generic_rules(own_tree: LoadedTree, country: str) -> None:
+    (group,) = resolve(trip(SELF_EMPLOYED, country=country), own_tree).groups
+    assert ids(group.travellers[0].documents) == ["jp_form", "jp_salary"]
+    assert group.notes == ("Fee: 10", "Originals only")
+    assert own_tree.fee_for(country) == "Fee: 10"
+    assert group.travellers[0].documents[1].note == "Attested"
+
+
+def test_own_checklist_has_no_relation_or_family_documents(own_tree: LoadedTree) -> None:
+    form = trip(SELF_EMPLOYED, Traveller(relation="son", age=10))
+    (group,) = resolve(form, own_tree).groups
+    assert group.shared == ()
+    assert ids(group.travellers[1].documents) == ["jp_form"]
+
+
+def test_other_countries_keep_generic_rules(own_tree: LoadedTree) -> None:
+    form = trip(SELF_EMPLOYED, Traveller(relation="son", age=10), country="us")
+    (group,) = resolve(form, own_tree).groups
+    assert ids(group.shared) == ["cover"]
+    assert ids(group.travellers[0].documents) == ["passport", "photos", "salary"]
+    assert group.notes == ()
+    assert own_tree.fee_for("us") is None
+
+
+# ----------------------------------------------------------------- Schengen list
+
+
+COMMON = [
+    "sch_passport",
+    "sch_photos",
+    "application_form",
+    "sch_insurance",
+    "sch_flight",
+    "sch_accommodation",
+    "sch_aadhaar",
+    "sch_passport_copy",
+    "sch_lost_passport",
+]
+FINANCES = ["sch_bank_statements", "sch_investments", "sch_itr"]
+OWN_FINANCES = ["sch_own_finances_if_any", "sch_investments"]
+SPONSOR = ["sch_sponsor_letter", "sch_sponsor_occupation"]
+DEPENDENT = [
+    *SPONSOR,
+    "sch_sponsor_bank_fd",
+    "sch_sponsor_itr",
+    "sch_sponsor_id",
+    "sch_relationship_proof",
+]
+STUDENT = [
+    "sch_birth_certificate",
+    "sch_bonafide",
+    "sch_student_id",
+    *SPONSOR,
+    "sch_sponsor_bank",
+    "sch_sponsor_itr",
+    "sch_sponsor_passports",
+    "sch_parent_noc",
+    "sch_parent_passports",
+]
+EMPLOYED = [
+    *FINANCES,
+    "sch_employment_contract",
+    "sch_intro_letter",
+    "sch_salary_slips",
+    "sch_salary_account",
+]
+BUSINESS = [
+    *FINANCES,
+    "sch_intro_letter",
+    "sch_company_registration",
+    "sch_salary_slips_or_certificate",
+    "sch_company_bank",
+    "sch_company_itr",
+]
+ASK_OFFICE = ["sch_occupation_ask_office"]
+SCHENGEN_SAMPLE = ["schengen", "france", "switzerland", "austria", "netherlands", "czech-republic"]
+
+
+@pytest.mark.parametrize(
+    ("profession", "extra"),
+    [
+        ("employed", EMPLOYED),
+        ("government_employee", EMPLOYED),
+        ("defence_personnel", EMPLOYED),
+        ("business_owner", BUSINESS),
+        ("company_director", BUSINESS),
+        (
+            "self_employed_professional",
+            [
+                *FINANCES,
+                "sch_professional_registration",
+                "sch_professional_letter",
+                "sch_entity_registration",
+                "sch_degree",
+            ],
+        ),
+        ("farmer", [*FINANCES, "sch_land_documents", "sch_j_form"]),
+        (
+            "seafarer",
+            [
+                *FINANCES,
+                "sch_offshore_contract",
+                "sch_intro_letter",
+                "sch_salary_slips_or_invoices",
+            ],
+        ),
+        (
+            "retired",
+            [
+                *FINANCES,
+                "sch_pension_order",
+                "sch_pension_slips",
+                "sch_pension_bank",
+                "sch_property_or_business_income",
+            ],
+        ),
+        ("homemaker", [*OWN_FINANCES, *DEPENDENT]),
+        ("unemployed", [*OWN_FINANCES, *DEPENDENT]),
+        ("infant", ["sch_birth_certificate", *DEPENDENT, "sch_parent_noc"]),
+        ("university_student", [*OWN_FINANCES, *STUDENT]),
+        ("school_student", STUDENT),
+        ("freelancer", [*FINANCES, *ASK_OFFICE]),
+        ("landlord_investor", [*FINANCES, "sch_property_or_business_income", *ASK_OFFICE]),
+        ("other", [*FINANCES, *ASK_OFFICE]),
+    ],
+)
+def test_schengen_lists_by_profession(
+    real_tree: LoadedTree, profession: str, extra: list[str]
+) -> None:
+    form = trip(Traveller(relation="self", profession=profession), country="schengen")
+    person = resolve(form, real_tree).groups[0].travellers[0]
+    assert ids(person.documents) == [*COMMON, *extra]
+
+
+@pytest.mark.parametrize("country", SCHENGEN_SAMPLE)
+def test_schengen_tourism_only_placeholder_is_the_application_form(
+    real_tree: LoadedTree, country: str
+) -> None:
+    form = trip(
+        SELF_EMPLOYED,
+        Traveller(relation="spouse", profession="homemaker"),
+        Traveller(relation="son", age=8),
+        Traveller(relation="daughter", age=1),
+        country=country,
+    )
+    (group,) = resolve(form, real_tree).groups
+    assert group.shared == ()
+    assert any("EUR 90" in note for note in group.notes)
+    for person in group.travellers:
+        placeholders = [d.id for d in person.documents if "[PLACEHOLDER]" in d.label]
+        assert placeholders == ["application_form"]
+
+
+def test_schengen_children_are_not_asked_for_their_own_finances(real_tree: LoadedTree) -> None:
+    form = trip(
+        SELF_EMPLOYED,
+        Traveller(relation="son", age=8),
+        Traveller(relation="daughter", age=1),
+        country="france",
+    )
+    (_, son, daughter) = resolve(form, real_tree).groups[0].travellers
+    for child in (son, daughter):
+        docs = ids(child.documents)
+        assert not set(docs) & {*FINANCES, "sch_own_finances_if_any"}
+        assert {"sch_birth_certificate", "sch_parent_noc"} <= set(docs)
+
+
+@pytest.mark.parametrize(
+    ("purpose", "kept"),
+    [
+        ("family_visit", ["invitation_letter", "host_id_proof"]),
+        ("business", ["business_invitation", "company_covering_letter"]),
+    ],
+)
+def test_schengen_other_purposes_keep_their_placeholders(
+    real_tree: LoadedTree, purpose: str, kept: list[str]
+) -> None:
+    form = trip(SELF_EMPLOYED, country="schengen", purpose=purpose)
+    docs = ids(resolve(form, real_tree).groups[0].travellers[0].documents)
+    assert docs[: len(COMMON)] == COMMON
+    assert docs[-2:] == kept
+
+
+def test_other_real_countries_do_not_get_the_schengen_list(real_tree: LoadedTree) -> None:
+    form = trip(SELF_EMPLOYED, country="japan")
+    (group,) = resolve(form, real_tree).groups
+    assert group.notes == ()
+    assert not [d for d in ids(group.travellers[0].documents) if d.startswith("sch_")]
+
+
 # ----------------------------------------------------------------- real data file
 
 

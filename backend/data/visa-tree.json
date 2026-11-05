@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": 1,
     "status": "placeholder",
-    "note": "PLACEHOLDER document lists for development only. These are NOT real visa requirements. Replace and review every country before go-live.",
+    "note": "Schengen lists come from CRM INVENTORY.docx, with the visa application form still a placeholder. Every other country, and Schengen family and business trips, still use PLACEHOLDER lists that are NOT real visa requirements. Replace and review every country before go-live.",
     "site_url": "https://www.gurgaonvisaservices.com"
   },
   "countries": {
@@ -33,7 +33,11 @@
     },
     "schengen": {
       "name": "Schengen Area (Europe)",
-      "last_reviewed": null
+      "last_reviewed": null,
+      "notes": [
+        "Financial documents must be originals, in A4 format."
+      ],
+      "fee": "Visa fee, payable at VFS: adults EUR 90 (about Rs 9,000), children 6-11 years EUR 45 (about Rs 4,500), children under 6 free. The fee can change without notice, and VFS charges may differ by city."
     },
     "france": {
       "name": "France",
@@ -79,6 +83,144 @@
       "name": "United Arab Emirates (Dubai)",
       "last_reviewed": null,
       "iso2": "AE"
+    },
+    "austria": {
+      "name": "Austria",
+      "last_reviewed": null,
+      "iso2": "AT",
+      "listed": false
+    },
+    "belgium": {
+      "name": "Belgium",
+      "last_reviewed": null,
+      "iso2": "BE",
+      "listed": false
+    },
+    "bulgaria": {
+      "name": "Bulgaria",
+      "last_reviewed": null,
+      "iso2": "BG",
+      "listed": false
+    },
+    "croatia": {
+      "name": "Croatia",
+      "last_reviewed": null,
+      "iso2": "HR",
+      "listed": false
+    },
+    "czech-republic": {
+      "name": "Czech Republic",
+      "last_reviewed": null,
+      "iso2": "CZ",
+      "listed": false
+    },
+    "denmark": {
+      "name": "Denmark",
+      "last_reviewed": null,
+      "iso2": "DK",
+      "listed": false
+    },
+    "estonia": {
+      "name": "Estonia",
+      "last_reviewed": null,
+      "iso2": "EE",
+      "listed": false
+    },
+    "finland": {
+      "name": "Finland",
+      "last_reviewed": null,
+      "iso2": "FI",
+      "listed": false
+    },
+    "greece": {
+      "name": "Greece",
+      "last_reviewed": null,
+      "iso2": "GR",
+      "listed": false
+    },
+    "hungary": {
+      "name": "Hungary",
+      "last_reviewed": null,
+      "iso2": "HU",
+      "listed": false
+    },
+    "iceland": {
+      "name": "Iceland",
+      "last_reviewed": null,
+      "iso2": "IS",
+      "listed": false
+    },
+    "liechtenstein": {
+      "name": "Liechtenstein",
+      "last_reviewed": null,
+      "iso2": "LI",
+      "listed": false
+    },
+    "lithuania": {
+      "name": "Lithuania",
+      "last_reviewed": null,
+      "iso2": "LT",
+      "listed": false
+    },
+    "luxembourg": {
+      "name": "Luxembourg",
+      "last_reviewed": null,
+      "iso2": "LU",
+      "listed": false
+    },
+    "malta": {
+      "name": "Malta",
+      "last_reviewed": null,
+      "iso2": "MT",
+      "listed": false
+    },
+    "netherlands": {
+      "name": "Netherlands",
+      "last_reviewed": null,
+      "iso2": "NL",
+      "listed": false
+    },
+    "norway": {
+      "name": "Norway",
+      "last_reviewed": null,
+      "iso2": "NO",
+      "listed": false
+    },
+    "poland": {
+      "name": "Poland",
+      "last_reviewed": null,
+      "iso2": "PL",
+      "listed": false
+    },
+    "portugal": {
+      "name": "Portugal",
+      "last_reviewed": null,
+      "iso2": "PT",
+      "listed": false
+    },
+    "romania": {
+      "name": "Romania",
+      "last_reviewed": null,
+      "iso2": "RO",
+      "listed": false
+    },
+    "slovakia": {
+      "name": "Slovakia",
+      "last_reviewed": null,
+      "iso2": "SK",
+      "listed": false
+    },
+    "slovenia": {
+      "name": "Slovenia",
+      "last_reviewed": null,
+      "iso2": "SI",
+      "listed": false
+    },
+    "sweden": {
+      "name": "Sweden",
+      "last_reviewed": null,
+      "iso2": "SE",
+      "listed": false
     }
   },
   "other_countries": {
@@ -114,10 +256,6 @@
       "name": "Armenia",
       "iso2": "AM"
     },
-    "austria": {
-      "name": "Austria",
-      "iso2": "AT"
-    },
     "azerbaijan": {
       "name": "Azerbaijan",
       "iso2": "AZ"
@@ -141,10 +279,6 @@
     "belarus": {
       "name": "Belarus",
       "iso2": "BY"
-    },
-    "belgium": {
-      "name": "Belgium",
-      "iso2": "BE"
     },
     "belize": {
       "name": "Belize",
@@ -177,10 +311,6 @@
     "brunei-darusallam": {
       "name": "Brunei",
       "iso2": "BN"
-    },
-    "bulgaria": {
-      "name": "Bulgaria",
-      "iso2": "BG"
     },
     "burkina-faso": {
       "name": "Burkina Faso",
@@ -230,10 +360,6 @@
       "name": "Côte d'Ivoire",
       "iso2": "CI"
     },
-    "croatia": {
-      "name": "Croatia",
-      "iso2": "HR"
-    },
     "cuba": {
       "name": "Cuba",
       "iso2": "CU"
@@ -241,14 +367,6 @@
     "cyprus": {
       "name": "Cyprus",
       "iso2": "CY"
-    },
-    "czech-republic": {
-      "name": "Czech Republic",
-      "iso2": "CZ"
-    },
-    "denmark": {
-      "name": "Denmark",
-      "iso2": "DK"
     },
     "djibouti": {
       "name": "Djibouti",
@@ -278,10 +396,6 @@
       "name": "Eritrea",
       "iso2": "ER"
     },
-    "estonia": {
-      "name": "Estonia",
-      "iso2": "EE"
-    },
     "ethiopia": {
       "name": "Ethiopia",
       "iso2": "ET"
@@ -289,10 +403,6 @@
     "fiji": {
       "name": "Fiji",
       "iso2": "FJ"
-    },
-    "finland": {
-      "name": "Finland",
-      "iso2": "FI"
     },
     "gabon": {
       "name": "Gabon",
@@ -309,10 +419,6 @@
     "ghana": {
       "name": "Ghana",
       "iso2": "GH"
-    },
-    "greece": {
-      "name": "Greece",
-      "iso2": "GR"
     },
     "grenada": {
       "name": "Grenada",
@@ -337,14 +443,6 @@
     "hong-kong": {
       "name": "Hong Kong",
       "iso2": "HK"
-    },
-    "hungary": {
-      "name": "Hungary",
-      "iso2": "HU"
-    },
-    "iceland": {
-      "name": "Iceland",
-      "iso2": "IS"
     },
     "indonesia": {
       "name": "Indonesia",
@@ -401,18 +499,6 @@
       "name": "Liberia",
       "iso2": "LR"
     },
-    "liechtenstein": {
-      "name": "Liechtenstein",
-      "iso2": "LI"
-    },
-    "lithuania": {
-      "name": "Lithuania",
-      "iso2": "LT"
-    },
-    "luxembourg": {
-      "name": "Luxembourg",
-      "iso2": "LU"
-    },
     "macedonia": {
       "name": "Macedonia",
       "iso2": "MK"
@@ -432,10 +518,6 @@
     "mali": {
       "name": "Mali",
       "iso2": "ML"
-    },
-    "malta": {
-      "name": "Malta",
-      "iso2": "MT"
     },
     "mauritius": {
       "name": "Mauritius",
@@ -473,10 +555,6 @@
       "name": "Nepal",
       "iso2": "NP"
     },
-    "netherlands": {
-      "name": "Netherlands",
-      "iso2": "NL"
-    },
     "nicaragua": {
       "name": "Nicaragua",
       "iso2": "NI"
@@ -488,10 +566,6 @@
     "north-korea": {
       "name": "North Korea",
       "iso2": "KP"
-    },
-    "norway": {
-      "name": "Norway",
-      "iso2": "NO"
     },
     "oman": {
       "name": "Oman",
@@ -525,21 +599,9 @@
       "name": "Philippines",
       "iso2": "PH"
     },
-    "poland": {
-      "name": "Poland",
-      "iso2": "PL"
-    },
-    "portugal": {
-      "name": "Portugal",
-      "iso2": "PT"
-    },
     "qatar": {
       "name": "Qatar",
       "iso2": "QA"
-    },
-    "romania": {
-      "name": "Romania",
-      "iso2": "RO"
     },
     "russia": {
       "name": "Russia",
@@ -573,14 +635,6 @@
       "name": "Serbia",
       "iso2": "RS"
     },
-    "slovakia": {
-      "name": "Slovakia",
-      "iso2": "SK"
-    },
-    "slovenia": {
-      "name": "Slovenia",
-      "iso2": "SI"
-    },
     "south-africa": {
       "name": "South Africa",
       "iso2": "ZA"
@@ -604,10 +658,6 @@
     "suriname": {
       "name": "Suriname",
       "iso2": "SR"
-    },
-    "sweden": {
-      "name": "Sweden",
-      "iso2": "SE"
     },
     "syria": {
       "name": "Syria",
@@ -734,7 +784,7 @@
       "label": "Income from rent or investments"
     },
     "seafarer": {
-      "label": "Seafarer or merchant navy"
+      "label": "Seafarer, merchant navy or off-shore"
     },
     "retired": {
       "label": "Retired or pensioner"
@@ -898,9 +948,6 @@
     "company_covering_letter": {
       "label": "[PLACEHOLDER] Covering letter from Indian company"
     },
-    "travel_insurance": {
-      "label": "[PLACEHOLDER] Travel insurance, EUR 30,000 cover"
-    },
     "ds160_confirmation": {
       "label": "[PLACEHOLDER] DS-160 confirmation page"
     },
@@ -909,6 +956,151 @@
     },
     "relationship_proof": {
       "label": "[PLACEHOLDER] Proof of relationship (marriage/birth certificates)"
+    },
+    "sch_passport": {
+      "label": "Valid national passport, plus all your older passports, valid and expired",
+      "note": "Issued within the last 10 years, valid at least 3 months after your return, with at least two blank pages. Handwritten passports and passports with observations on the front (bio data) page cannot be accepted."
+    },
+    "sch_photos": {
+      "label": "2 new passport-size photographs (ICAO)",
+      "note": "White background, not older than 6 months, 35-40 mm wide, not copied or scanned."
+    },
+    "sch_insurance": {
+      "label": "Travel insurance, minimum cover EUR 30,000 / USD 50,000 per person",
+      "note": "Must cover medical repatriation, urgent medical attention and emergency hospital treatment, for the entire stay in the Schengen area including travel days, and COVID."
+    },
+    "sch_flight": {
+      "label": "Flight reservation with the names of all travellers",
+      "note": "If applicable, also proof of intra-Schengen flight, train, ferry or car rental."
+    },
+    "sch_accommodation": {
+      "label": "Hotel reservation confirmation for your complete stay in the Schengen area",
+      "note": "For a package tour: advance payments and receipts, transport and flight reservations, and the complete package details."
+    },
+    "sch_bank_statements": {
+      "label": "Personal bank account statements, latest 3 months, attested by the bank"
+    },
+    "sch_investments": {
+      "label": "Copy of your investment portfolio, if applicable"
+    },
+    "sch_itr": {
+      "label": "Personal income tax return, last 2 assessment years",
+      "note": "Only the ITR-V (Indian Income Tax Return Verification Form) or acknowledgement is accepted."
+    },
+    "sch_aadhaar": {
+      "label": "Aadhaar card copy"
+    },
+    "sch_passport_copy": {
+      "label": "Copy of your current passport with all visa and immigration stamps"
+    },
+    "sch_lost_passport": {
+      "label": "Proof of loss, if any passport was lost"
+    },
+    "sch_employment_contract": {
+      "label": "Employment offer or contract"
+    },
+    "sch_intro_letter": {
+      "label": "Original introduction letter on the employer or company letterhead",
+      "note": "Signed and stamped by HR or the directorate, stating your position and length of service, with a no objection statement for the trip and the dates and purpose of the trip."
+    },
+    "sch_salary_slips": {
+      "label": "Salary slips, last 3 months"
+    },
+    "sch_salary_account": {
+      "label": "Salary account statement, latest 3 months, attested by the bank"
+    },
+    "sch_company_registration": {
+      "label": "Company registration documents: COI, GST, partnership deed, IEC"
+    },
+    "sch_salary_slips_or_certificate": {
+      "label": "Salary slips for the last 3 months, or a salary certificate"
+    },
+    "sch_company_bank": {
+      "label": "Company bank account statement, latest 3 months, attested by the bank"
+    },
+    "sch_company_itr": {
+      "label": "Company income tax returns, last 2 years"
+    },
+    "sch_professional_registration": {
+      "label": "Registration with the Bar Council, ICAI or MCI"
+    },
+    "sch_professional_letter": {
+      "label": "Letter on your professional letterhead"
+    },
+    "sch_entity_registration": {
+      "label": "Registration documents of the entity, if registered"
+    },
+    "sch_degree": {
+      "label": "Degree copy"
+    },
+    "sch_land_documents": {
+      "label": "Land ownership documents, valuated, in English"
+    },
+    "sch_j_form": {
+      "label": "J form copies"
+    },
+    "sch_offshore_contract": {
+      "label": "Valid off-shore employment contract copy"
+    },
+    "sch_salary_slips_or_invoices": {
+      "label": "Salary slips or invoices, latest 3 months"
+    },
+    "sch_pension_order": {
+      "label": "Pension payment order"
+    },
+    "sch_pension_slips": {
+      "label": "Pension slips, latest 3 months"
+    },
+    "sch_pension_bank": {
+      "label": "Pension account bank statement, latest 3 months, attested by the bank"
+    },
+    "sch_property_or_business_income": {
+      "label": "Proof of regular income from owning property or a business"
+    },
+    "sch_sponsor_letter": {
+      "label": "Letter of sponsorship"
+    },
+    "sch_sponsor_occupation": {
+      "label": "Occupation document of the sponsor"
+    },
+    "sch_sponsor_bank_fd": {
+      "label": "Sponsor's bank statements, latest 3 months, and copies of FDs, attested by the bank"
+    },
+    "sch_sponsor_bank": {
+      "label": "Sponsor's bank statements, last 3 months, attested by the bank"
+    },
+    "sch_sponsor_itr": {
+      "label": "Sponsor's income tax returns, latest 2 years"
+    },
+    "sch_sponsor_id": {
+      "label": "Copy of the sponsor's passport or ID card"
+    },
+    "sch_relationship_proof": {
+      "label": "Proof of relationship to the sponsor"
+    },
+    "sch_birth_certificate": {
+      "label": "Birth certificate"
+    },
+    "sch_bonafide": {
+      "label": "School or college bonafide letter confirming admission and leave approval"
+    },
+    "sch_student_id": {
+      "label": "School or college ID card copy"
+    },
+    "sch_sponsor_passports": {
+      "label": "Copy of the sponsor's passport (both parents)"
+    },
+    "sch_parent_noc": {
+      "label": "Original notarised NOC from any parent not travelling along"
+    },
+    "sch_parent_passports": {
+      "label": "Proof of relationship: parents' passport copies"
+    },
+    "sch_occupation_ask_office": {
+      "label": "Documents for your occupation: please check with our office"
+    },
+    "sch_own_finances_if_any": {
+      "label": "Your own bank statements (latest 3 months, attested) and ITR-V (last 2 assessment years), if you have them"
     }
   },
   "rules": {
@@ -1005,24 +1197,6 @@
     "us": [
       "ds160_confirmation"
     ],
-    "schengen": [
-      "travel_insurance"
-    ],
-    "france": [
-      "travel_insurance"
-    ],
-    "germany": [
-      "travel_insurance"
-    ],
-    "italy": [
-      "travel_insurance"
-    ],
-    "spain": [
-      "travel_insurance"
-    ],
-    "switzerland": [
-      "travel_insurance"
-    ],
     "@children": [
       "birth_certificate",
       "parents_consent"
@@ -1032,6 +1206,212 @@
     ],
     "@family": [
       "family_covering_letter"
+    ],
+    "schengen": [
+      "sch_passport",
+      "sch_photos",
+      "application_form",
+      "sch_insurance",
+      "sch_flight",
+      "sch_accommodation",
+      "sch_aadhaar",
+      "sch_passport_copy",
+      "sch_lost_passport"
+    ],
+    "schengen/*/employed": [
+      "sch_bank_statements",
+      "sch_investments",
+      "sch_itr",
+      "sch_employment_contract",
+      "sch_intro_letter",
+      "sch_salary_slips",
+      "sch_salary_account"
+    ],
+    "schengen/*/government_employee": [
+      "sch_bank_statements",
+      "sch_investments",
+      "sch_itr",
+      "sch_employment_contract",
+      "sch_intro_letter",
+      "sch_salary_slips",
+      "sch_salary_account"
+    ],
+    "schengen/*/defence_personnel": [
+      "sch_bank_statements",
+      "sch_investments",
+      "sch_itr",
+      "sch_employment_contract",
+      "sch_intro_letter",
+      "sch_salary_slips",
+      "sch_salary_account"
+    ],
+    "schengen/*/business_owner": [
+      "sch_bank_statements",
+      "sch_investments",
+      "sch_itr",
+      "sch_intro_letter",
+      "sch_company_registration",
+      "sch_salary_slips_or_certificate",
+      "sch_company_bank",
+      "sch_company_itr"
+    ],
+    "schengen/*/company_director": [
+      "sch_bank_statements",
+      "sch_investments",
+      "sch_itr",
+      "sch_intro_letter",
+      "sch_company_registration",
+      "sch_salary_slips_or_certificate",
+      "sch_company_bank",
+      "sch_company_itr"
+    ],
+    "schengen/*/self_employed_professional": [
+      "sch_bank_statements",
+      "sch_investments",
+      "sch_itr",
+      "sch_professional_registration",
+      "sch_professional_letter",
+      "sch_entity_registration",
+      "sch_degree"
+    ],
+    "schengen/*/farmer": [
+      "sch_bank_statements",
+      "sch_investments",
+      "sch_itr",
+      "sch_land_documents",
+      "sch_j_form"
+    ],
+    "schengen/*/seafarer": [
+      "sch_bank_statements",
+      "sch_investments",
+      "sch_itr",
+      "sch_offshore_contract",
+      "sch_intro_letter",
+      "sch_salary_slips_or_invoices"
+    ],
+    "schengen/*/retired": [
+      "sch_bank_statements",
+      "sch_investments",
+      "sch_itr",
+      "sch_pension_order",
+      "sch_pension_slips",
+      "sch_pension_bank",
+      "sch_property_or_business_income"
+    ],
+    "schengen/*/homemaker": [
+      "sch_own_finances_if_any",
+      "sch_investments",
+      "sch_sponsor_letter",
+      "sch_sponsor_occupation",
+      "sch_sponsor_bank_fd",
+      "sch_sponsor_itr",
+      "sch_sponsor_id",
+      "sch_relationship_proof"
+    ],
+    "schengen/*/unemployed": [
+      "sch_own_finances_if_any",
+      "sch_investments",
+      "sch_sponsor_letter",
+      "sch_sponsor_occupation",
+      "sch_sponsor_bank_fd",
+      "sch_sponsor_itr",
+      "sch_sponsor_id",
+      "sch_relationship_proof"
+    ],
+    "schengen/*/infant": [
+      "sch_birth_certificate",
+      "sch_sponsor_letter",
+      "sch_sponsor_occupation",
+      "sch_sponsor_bank_fd",
+      "sch_sponsor_itr",
+      "sch_sponsor_id",
+      "sch_relationship_proof",
+      "sch_parent_noc"
+    ],
+    "schengen/*/university_student": [
+      "sch_own_finances_if_any",
+      "sch_investments",
+      "sch_birth_certificate",
+      "sch_bonafide",
+      "sch_student_id",
+      "sch_sponsor_letter",
+      "sch_sponsor_occupation",
+      "sch_sponsor_bank",
+      "sch_sponsor_itr",
+      "sch_sponsor_passports",
+      "sch_parent_noc",
+      "sch_parent_passports"
+    ],
+    "schengen/*/school_student": [
+      "sch_birth_certificate",
+      "sch_bonafide",
+      "sch_student_id",
+      "sch_sponsor_letter",
+      "sch_sponsor_occupation",
+      "sch_sponsor_bank",
+      "sch_sponsor_itr",
+      "sch_sponsor_passports",
+      "sch_parent_noc",
+      "sch_parent_passports"
+    ],
+    "schengen/*/freelancer": [
+      "sch_bank_statements",
+      "sch_investments",
+      "sch_itr",
+      "sch_occupation_ask_office"
+    ],
+    "schengen/*/landlord_investor": [
+      "sch_bank_statements",
+      "sch_investments",
+      "sch_itr",
+      "sch_property_or_business_income",
+      "sch_occupation_ask_office"
+    ],
+    "schengen/*/other": [
+      "sch_bank_statements",
+      "sch_investments",
+      "sch_itr",
+      "sch_occupation_ask_office"
+    ],
+    "schengen/family_visit": [
+      "invitation_letter",
+      "host_id_proof"
+    ],
+    "schengen/business": [
+      "business_invitation",
+      "company_covering_letter"
+    ]
+  },
+  "own_checklists": {
+    "schengen": [
+      "france",
+      "germany",
+      "italy",
+      "spain",
+      "switzerland",
+      "austria",
+      "belgium",
+      "bulgaria",
+      "croatia",
+      "czech-republic",
+      "denmark",
+      "estonia",
+      "finland",
+      "greece",
+      "hungary",
+      "iceland",
+      "liechtenstein",
+      "lithuania",
+      "luxembourg",
+      "malta",
+      "netherlands",
+      "norway",
+      "poland",
+      "portugal",
+      "romania",
+      "slovakia",
+      "slovenia",
+      "sweden"
     ]
   }
 }

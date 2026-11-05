@@ -79,6 +79,7 @@ class GroupChecklist(_Out):
     purpose: str
     purpose_label: str
     last_reviewed: date | None
+    notes: tuple[str, ...] = ()
     shared: tuple[DocItem, ...]
     travellers: tuple[PersonChecklist, ...]
 
@@ -139,6 +140,13 @@ def _docs_for(
                 seen.add(doc_id)
                 ordered.append(doc_id)
 
+    owner = tree.own_checklist.get(country)
+    if owner is not None:
+        for rule in tree.path_rules:
+            if rule.key.country == owner and rule.matches(owner, purpose, profession):
+                add(rule.documents)
+        return ordered
+
     for rule in tree.path_rules:
         if rule.matches(country, purpose, profession):
             add(rule.documents)
@@ -172,7 +180,8 @@ def resolve(form: TripForm, tree: LoadedTree) -> Checklist:
 
     out: list[GroupChecklist] = []
     for (country, purpose), members in groups.items():
-        shared_ids = tree.family_documents if len(members) > 1 else ()
+        owner = tree.own_checklist.get(country)
+        shared_ids = tree.family_documents if len(members) > 1 and owner is None else ()
         shared = set(shared_ids)
         people = tuple(
             PersonChecklist(
@@ -197,6 +206,7 @@ def resolve(form: TripForm, tree: LoadedTree) -> Checklist:
                 purpose=purpose,
                 purpose_label=data.purposes[purpose].label,
                 last_reviewed=data.countries[country].last_reviewed,
+                notes=data.countries[owner or country].group_notes,
                 shared=tuple(item(d) for d in shared_ids),
                 travellers=people,
             )

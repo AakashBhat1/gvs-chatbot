@@ -6,7 +6,9 @@ from typing import Any
 import pytest
 
 from app.brains.lexicon import Lexicon, edit_distance, load_lexicon, parse_lexicon
+from app.brains.rules import RulesBrain
 from app.evaluate import Case, Expect, Outcome
+from app.extraction import Asked, Context
 from app.form import Traveller, TripForm
 from app.paths import default_lexicon_path
 from app.tree import LoadedTree, TreeError, parse_tree
@@ -15,6 +17,13 @@ from app.tree import LoadedTree, TreeError, parse_tree
 @pytest.fixture
 def lex(real_tree: LoadedTree) -> Lexicon:
     return load_lexicon(default_lexicon_path(), real_tree)
+
+
+@pytest.mark.parametrize("message", ["I work offshore", "off-shore job", "on an oil rig"])
+def test_offshore_work_is_seafarer(real_tree: LoadedTree, lex: Lexicon, message: str) -> None:
+    ctx = Context(form=TripForm(), asked=Asked("open", ()), stage="collecting")
+    extraction = RulesBrain(lex).understand(message, ctx).extraction
+    assert [t.profession for t in extraction.travellers] == ["seafarer"]
 
 
 @pytest.mark.parametrize(

@@ -283,6 +283,10 @@ class ChatEngine:
                     text=T.WHAT_CHANGE, buttons=(T.START_OVER,), stage=state.stage
                 )
 
+        overwrite = ex.intent == "correct" or state.stage != "collecting"
+        form, overflow = merge(state.form, ex, overwrite=overwrite)
+        progressed = form != state.form
+
         # Things to say before the next question; each is a fixed template.
         site = tree.data.meta.site_url
         notes: list[str] = []
@@ -292,11 +296,7 @@ class ChatEngine:
             other = tree.data.other_countries[ex.other_country]
             notes.append(T.unsupported(other.name, ex.other_country, site))
         if ex.asks_office:
-            notes.append(T.office(site))
-
-        overwrite = ex.intent == "correct" or state.stage != "collecting"
-        form, overflow = merge(state.form, ex, overwrite=overwrite)
-        progressed = form != state.form
+            notes.append(T.office(site, tree.fee_for(form.country) if form.country else None))
         if overflow:
             notes.append(T.TOO_MANY.format(limit=MAX_TRAVELLERS))
         quiet = not progressed and not notes

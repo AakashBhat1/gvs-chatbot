@@ -18,7 +18,7 @@ from pydantic import ValidationError
 
 from app.form import MAX_TRAVELLERS, Traveller, TripForm
 from app.paths import default_tree_path
-from app.resolver import Checklist, FormError, IncompleteFormError, resolve
+from app.resolver import Checklist, DocItem, FormError, IncompleteFormError, resolve
 from app.tree import TreeError, load_tree
 
 _TRAVELLER_KEYS = frozenset({"relation", "profession", "age", "country", "purpose"})
@@ -47,6 +47,10 @@ def parse_traveller(spec: str) -> Traveller:
         raise argparse.ArgumentTypeError(f"invalid traveller {spec!r}: {exc}") from exc
 
 
+def _doc_lines(doc: DocItem) -> list[str]:
+    return [f"    - {doc.label}", *([f"      {doc.note}"] if doc.note else [])]
+
+
 def render(checklist: Checklist, *, disclaimer: bool = True) -> str:
     """Plain-text checklist. The chat reply already carries the disclaimer, so the
     REPL passes ``disclaimer=False`` to avoid printing it twice."""
@@ -54,13 +58,14 @@ def render(checklist: Checklist, *, disclaimer: bool = True) -> str:
     for g in checklist.groups:
         reviewed = g.last_reviewed.isoformat() if g.last_reviewed else "not yet reviewed"
         lines.append(f"== {g.country_name} - {g.purpose_label}  (last reviewed: {reviewed})")
+        lines += [f"  Note: {note}" for note in g.notes]
         if g.shared:
             lines.append("  Shared, once per application:")
-            lines += [f"    - {d.label}" for d in g.shared]
+            lines += [line for d in g.shared for line in _doc_lines(d)]
         for p in g.travellers:
             age = f", age {p.age}" if p.age is not None else ""
             lines.append(f"  {p.index + 1}. {p.relation_label} ({p.profession_label}{age})")
-            lines += [f"    - {d.label}" for d in p.documents]
+            lines += [line for d in p.documents for line in _doc_lines(d)]
     lines.append("")
     if disclaimer:
         lines.append("Confirm with the embassy or VFS before applying.")

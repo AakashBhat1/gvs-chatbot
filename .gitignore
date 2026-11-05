@@ -40,3 +40,6 @@ desktop.ini
 
 # Downloaded open data (tools/build_lexicon.py); pinned in data/sources.toml
 backend/data/raw/
+
+# Source documents from the business; their text lives in the docs vault
+*.docx

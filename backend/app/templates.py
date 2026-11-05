@@ -44,6 +44,7 @@ UNSUPPORTED_LINK: Final = (
 )
 UNSUPPORTED_NO_LINK: Final = " Please contact our office for {name}."
 OFFICE: Final = "Fees, processing times and appointments are handled by our office"
+OFFICE_WITH_FEE: Final = "{fee} Processing times and appointments are handled by our office"
 OFFICE_LINK: Final = ": {site}/contact. I can still list the documents you need."
 OFFICE_NO_LINK: Final = ". I can still list the documents you need."
 COUNTRY_PAGE: Final = "More about {name}: {site}/visa/{slug}"
@@ -162,7 +163,8 @@ def ask_main_purpose(choices: tuple[str, ...], tree: LoadedTree) -> str:
 
 
 def help_text(tree: LoadedTree) -> str:
-    text = HELP.format(countries=_join([c.name for c in tree.data.countries.values()]))
+    names = [c.name for c in tree.data.countries.values() if c.listed]
+    text = HELP.format(countries=_join(names))
     site = tree.data.meta.site_url
     return text + (HELP_MORE.format(site=site) if site else "")
 
@@ -176,8 +178,9 @@ def unsupported(name: str, slug: str, site: str | None) -> str:
     return UNSUPPORTED.format(name=name) + tail
 
 
-def office(site: str | None) -> str:
-    return OFFICE + (OFFICE_LINK.format(site=site) if site else OFFICE_NO_LINK)
+def office(site: str | None, fee: str | None = None) -> str:
+    head = OFFICE_WITH_FEE.format(fee=fee) if fee else OFFICE
+    return head + (OFFICE_LINK.format(site=site) if site else OFFICE_NO_LINK)
 
 
 def result(checklist: Checklist, site: str | None) -> str:
@@ -225,7 +228,9 @@ def summary(form: TripForm, professions: list[str], tree: LoadedTree) -> str:
 
 def country_buttons(tree: LoadedTree) -> tuple[Button, ...]:
     return tuple(
-        Button(label=c.name, choice=f"country:{cid}") for cid, c in tree.data.countries.items()
+        Button(label=c.name, choice=f"country:{cid}")
+        for cid, c in tree.data.countries.items()
+        if c.listed
     )
 
 

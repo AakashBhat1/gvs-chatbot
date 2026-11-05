@@ -14,6 +14,10 @@ Rule key grammar (keys of ``rules``)::
     "@<relation>"             travellers with that relation (e.g. "@son")
     "@<group>"                travellers whose relation is in relation_groups[group]
     "@family"                 shared items, once per (country, purpose) group of 2+
+
+``own_checklists`` maps a country to the countries that share its list (it may be
+empty). Those countries use only rules keyed to the owning country: no "*" or
+"*/..." path rules, no "@" rules and no shared items are inherited.
 """
 
 from __future__ import annotations
@@ -67,6 +71,13 @@ class Country(_Strict):
     name: Label
     last_reviewed: date | None = None
     iso2: Iso2 | None = None  # ISO 3166 code; links open data (cities, names) to this id
+    fee: Note | None = None  # shown once per group, and when someone asks about fees
+    notes: tuple[Note, ...] = ()  # shown once per group, after the fee
+    listed: bool = True  # False: understood when typed, left off the buttons and help text
+
+    @property
+    def group_notes(self) -> tuple[str, ...]:
+        return (self.fee, *self.notes) if self.fee else self.notes
 
 
 class OtherCountry(_Strict):
@@ -137,6 +148,7 @@ class VisaTree(_Strict):
     age_bands: dict[str, list[AgeBand]]
     documents: dict[Id, Document]
     rules: dict[str, list[Id]]
+    own_checklists: dict[Id, list[Id]] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def _check_references(self) -> VisaTree:
@@ -158,6 +170,7 @@ class VisaTree(_Strict):
         errors += self._check_groups()
         errors += self._check_age_bands()
         errors += self._check_rules()
+        errors += self._check_own_checklists()
         if errors:
             raise ValueError("; ".join(errors))
         return self
@@ -226,6 +239,38 @@ class VisaTree(_Strict):
             ]
         return errors
 
+    def _check_own_checklists(self) -> list[str]:
+        errors: list[str] = []
+        owner_of: dict[str, str] = {}
+        for owner in self.own_checklists:
+            if owner not in self.countries:
+                errors.append(f"own_checklists.{owner}: unknown country")
+            owner_of[owner] = owner
+        for owner, members in self.own_checklists.items():
+            for member in members:
+                if member not in self.countries:
+                    errors.append(f"own_checklists.{owner}: unknown country {member!r}")
+                elif member in owner_of:
+                    errors.append(
+                        f"own_checklists.{owner}: {member!r} already owns or shares a checklist"
+                    )
+                owner_of[member] = owner
+        with_rules: set[str] = set()
+        for raw in self.rules:
+            try:
+                key = parse_rule_key(raw)
+            except TreeError:  # already reported by _check_rules
+                continue
+            if isinstance(key, PathKey) and key.country is not None:
+                with_rules.add(key.country)
+                owner = owner_of.get(key.country, key.country)
+                if owner != key.country:
+                    errors.append(f"rules.{raw}: ignored, {key.country} uses {owner}'s list")
+        errors += [
+            f"own_checklists.{o}: no rules" for o in self.own_checklists if o not in with_rules
+        ]
+        return errors
+
 
 # --------------------------------------------------------------------------- compiled
 
@@ -253,6 +298,7 @@ class LoadedTree:
     path_rules: tuple[PathRule, ...]  # least specific first, then file order
     relation_rules: tuple[tuple[str, tuple[str, ...]], ...]  # (relation id, docs), file order
     family_documents: tuple[str, ...]
+    own_checklist: dict[str, str]  # country id -> the country whose rules it uses
 
     @classmethod
     def compile(cls, data: VisaTree, version: str) -> LoadedTree:
@@ -276,7 +322,15 @@ class LoadedTree:
             path_rules=tuple(rule for _, _, rule in path_rules),
             relation_rules=tuple(relation_rules),
             family_documents=tuple(family),
+            own_checklist={
+                country: owner
+                for owner, members in data.own_checklists.items()
+                for country in (owner, *members)
+            },
         )
+
+    def fee_for(self, country: str) -> str | None:
+        return self.data.countries[self.own_checklist.get(country, country)].fee
 
     def age_bands_for(self, country: str) -> list[AgeBand]:
         bands = self.data.age_bands
