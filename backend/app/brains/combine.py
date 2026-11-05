@@ -13,6 +13,11 @@ reading is the anchor:
     for "two adults") is dropped; a person the rules saw that the model left
     out ("just me") is added back.
 
+    A purpose only the model saw is dropped too, unless the bot just asked for
+    the purpose: models guess one from a job ("I own a restaurant" becomes a
+    business trip), a wrong one changes the documents, and asking costs one
+    question.
+
 ``fill_blanks``
     The model's answer is used as it is; the rules only fill in a missing
     country or purpose. This was the behaviour before ``rules_precede``.
@@ -29,13 +34,18 @@ from typing import Final
 from app.extraction import Extraction, TravellerPatch
 from app.form import TripForm
 
-# (rules' answer, later brain's answer, the form so far) -> merged answer
-Combine = Callable[[Extraction, Extraction, TripForm], Extraction]
+# (rules' answer, later brain's answer, the form so far, the bot asked for the purpose)
+Combine = Callable[[Extraction, Extraction, TripForm, bool], Extraction]
 
 _DETAILS: Final = ("profession", "age", "country", "purpose")
 
 
-def fill_blanks(rules: Extraction, model: Extraction, form: TripForm | None = None) -> Extraction:
+def fill_blanks(
+    rules: Extraction,
+    model: Extraction,
+    form: TripForm | None = None,
+    asked_purpose: bool = False,
+) -> Extraction:
     if not model.on_topic or model.intent == "restart":
         return model
     update: dict[str, object] = {}
@@ -56,7 +66,13 @@ def _fill(patch: TravellerPatch, other: TravellerPatch) -> TravellerPatch:
     return patch.model_copy(update=update) if update else patch
 
 
-def _people(rules: Extraction, model: Extraction, form: TripForm) -> tuple[TravellerPatch, ...]:
+def _without_purpose(patch: TravellerPatch) -> TravellerPatch:
+    return patch.model_copy(update={"purpose": None}) if patch.purpose is not None else patch
+
+
+def _people(
+    rules: Extraction, model: Extraction, form: TripForm, *, asked_purpose: bool
+) -> tuple[TravellerPatch, ...]:
     """The rules decide who; the model decides their details.
 
     Each person the rules read is paired with the model's entry for the same
@@ -65,6 +81,10 @@ def _people(rules: Extraction, model: Extraction, form: TripForm) -> tuple[Trave
     entry with no rules counterpart is kept only if it updates someone already
     in the form; a new person only the model saw is dropped.
     """
+    if not asked_purpose:
+        model = model.model_copy(
+            update={"travellers": tuple(_without_purpose(p) for p in model.travellers)}
+        )
     if not rules.travellers:
         return model.travellers  # the rules saw nobody: nothing to check against
 
@@ -104,7 +124,12 @@ def _kinds(ex: Extraction) -> int:
     return sum(bool(x) for x in (place, ex.purpose, ex.travellers, ex.traveller_count))
 
 
-def rules_precede(rules: Extraction, model: Extraction, form: TripForm | None = None) -> Extraction:
+def rules_precede(
+    rules: Extraction,
+    model: Extraction,
+    form: TripForm | None = None,
+    asked_purpose: bool = False,
+) -> Extraction:
     """See the module docstring. Off-topic is the model's call (it reads questions
     better), unless the rules found at least two kinds of trip detail."""
     if model.intent == "restart" or rules.intent == "restart":
@@ -113,15 +138,16 @@ def rules_precede(rules: Extraction, model: Extraction, form: TripForm | None = 
     if not on_topic:
         # "what's the best time to visit Japan": a question, not a trip; keep nothing
         return Extraction(on_topic=False, asks_office=rules.asks_office or model.asks_office)
-    people = _people(rules, model, form or TripForm())
+    people = _people(rules, model, form or TripForm(), asked_purpose=asked_purpose)
     group = rules.group_of or model.group_of
     if group is not None and any(p.relation == group for p in people):
         group = None
+    can_use_model_purpose = asked_purpose and not rules.purpose_choices
     return Extraction(
         on_topic=True,
         intent=rules.intent if rules.intent != "give_details" else model.intent,
         country=rules.country or (None if rules.other_country else model.country),
-        purpose=rules.purpose or (None if rules.purpose_choices else model.purpose),
+        purpose=rules.purpose or (model.purpose if can_use_model_purpose else None),
         traveller_count=rules.traveller_count or model.traveller_count,
         travellers=people,
         other_country=rules.other_country or (None if rules.country else model.other_country),

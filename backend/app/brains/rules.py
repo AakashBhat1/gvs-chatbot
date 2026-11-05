@@ -40,8 +40,14 @@ PRONOUN_EXCLUDES: Final = {
 }
 # "alone" after someone else is named is about them; "just me" is always the writer.
 GOES_ALONE: Final = frozenset({"alone", "akela", "akeli", "akele", "solo"})
-WITH_BEFORE: Final = frozenset({"with"})  # "with my friends": "along with" ends in "with" too
+WITH_BEFORE: Final = frozenset({"with", "w"})  # "with my friends", "along with", "w my mom"
 WITH_AFTER: Final = frozenset({"saath", "sath"})  # "dost ke saath"
+BOTH_WORDS: Final = frozenset({"both", "dono"})
+BABY: Final = "infant"
+# "do" and "teen" count only Hindi plurals: "do bacche" is two children, "do kids" is English.
+COUNTED_BY_WEAK_NUMBER: Final = frozenset(
+    {"bachche", "bacche", "bachhe", "betiyan", "dost", "dosto", "doston"}
+)
 PERSON_KINDS: Final = frozenset(
     {
         "relation",
@@ -94,6 +100,7 @@ class Mention:
     relation: str
     plural_pending: bool = False  # "kids" with no number: one slot per age that follows
     group: int = 0
+    implied: bool = False  # the writer, known only from "with my wife"
 
 
 @dataclass(slots=True)
@@ -126,6 +133,7 @@ class RulesBrain:
     def understand(self, message: str, ctx: Context) -> BrainResult:
         p = _Parse(self._scan([self._from_script(t) for t in tokenize(message)]))
         self._mark_boundaries(p)
+        self._babies_as_people(p, ctx)
         self._make_mentions(p, ctx)
         self._speaker_goes_with(p)
         self._numbers(p, ctx)
@@ -137,7 +145,8 @@ class RulesBrain:
         p.ambiguous += sum(s.fuzzy for s in p.spans)
 
         extraction = self._build(p, ctx, message)
-        confident = p.unexplained == 0 and p.ambiguous == 0
+        never_a_trip = any(s.kind == "never_a_trip" for s in p.spans)
+        confident = never_a_trip or (p.unexplained == 0 and p.ambiguous == 0)
         return BrainResult(extraction=extraction, confident=confident, brain=self.name)
 
     # ------------------------------------------------------------------ scanning
@@ -191,7 +200,10 @@ class RulesBrain:
             nxt = spans[k + 1] if k + 1 < len(spans) else None
             prev = _prev_meaningful(spans, k)
             if s.kind == "weak_number":
-                is_count = nxt is not None and nxt.kind == "count_noun"
+                is_count = nxt is not None and (
+                    nxt.kind == "count_noun"
+                    or (nxt.kind == "relation" and nxt.text in COUNTED_BY_WEAK_NUMBER)
+                )
                 s.kind = "number" if is_count else "filler"
             elif (
                 s.kind == "relation"
@@ -215,6 +227,25 @@ class RulesBrain:
             s.sentence, s.segment = sentence, segment
 
     # ------------------------------------------------------------------ people
+
+    @staticmethod
+    def _babies_as_people(p: _Parse, ctx: Context) -> None:
+        """'Baby is 8 months old, wife and me': a baby with nobody before it is a child.
+
+        'newborn son' and 'my son is a baby' describe someone, and a bare 'baby' answers
+        the question the bot just asked about someone.
+        """
+        if ctx.asked is not None and ctx.asked.field in ("profession", "age"):
+            return
+        for k, s in enumerate(p.spans):
+            if s.kind != "profession" or s.value != BABY:
+                continue
+            nxt = p.spans[k + 1] if k + 1 < len(p.spans) else None
+            someone_before = any(
+                b.kind in PERSON_KINDS and b.segment == s.segment for b in p.spans[:k]
+            )
+            if not someone_before and (nxt is None or nxt.kind not in PERSON_KINDS):
+                s.kind, s.value = "relation", "child"
 
     def _new_slots(self, p: _Parse, relation: str, n: int, *, plural: bool) -> list[int]:
         start = len(p.slots)
@@ -240,6 +271,8 @@ class RulesBrain:
             created = self._mention_for(p, k, s, group, ctx)
             if created:
                 last_kind = "person"
+                if self.lex.lookup(s.tokens) == ("profession", BABY):  # see _babies_as_people
+                    p.slots[p.mentions[-1].slots[0]].profession = BABY
             elif s.kind not in ("conj", "comma", "plural"):
                 last_kind = s.kind
 
@@ -369,13 +402,21 @@ class RulesBrain:
         if not people or any(p.slots[i].relation == "self" for m in people for i in m.slots):
             return
         first = people[0].pos
+        before_at = first - 1
         before = _prev_meaningful(p.spans, first)
         if before is not None and before.kind == "number":  # "with 2 friends"
             before = _prev_meaningful(p.spans, first - 1)
+            before_at = first - 2
         after = p.spans[first + 1] if first + 1 < len(p.spans) else None
         led_by_with = before is not None and before.tokens[-1] in WITH_BEFORE
         followed_by_saath = after is not None and after.tokens[-1] in WITH_AFTER
-        if led_by_with or followed_by_saath:
+        if led_by_with:
+            # The writer stands at "with", so "Doctor, going to Rome with my wife" finds them.
+            mine = Mention(
+                before_at, self._self_slot(p), "self", group=people[0].group, implied=True
+            )
+            p.mentions.insert(p.mentions.index(people[0]), mine)
+        elif followed_by_saath:
             self._self_slot(p)
 
     def _single_out(self, p: _Parse, k: int, group: int) -> bool:
@@ -399,7 +440,8 @@ class RulesBrain:
         return self._new_slots(p, relation, 1, plural=False)
 
     def _is_host(self, p: _Parse, k: int) -> bool:
-        """'visit my son' / 'bete se milne': the relation is who they visit, not a traveller."""
+        """'visit my son', 'bete se milne', 'my sister lives there', 'didi ke paas':
+        the relation is who they visit, not a traveller."""
         prev = _prev_meaningful(p.spans, k)
         if (
             prev is not None
@@ -408,6 +450,8 @@ class RulesBrain:
         ):
             return True
         nxt = p.spans[k + 1] if k + 1 < len(p.spans) else None
+        if nxt is not None and nxt.kind == "host_after":
+            return True
         return nxt is not None and nxt.value == "family_visit" and nxt.tokens[0] == "milne"
 
     # ------------------------------------------------------------------ attaching
@@ -573,7 +617,13 @@ class RulesBrain:
     def _assign_age(self, p: _Parse, m: Mention, years: int) -> None:
         free = [i for i in m.slots if p.slots[i].age is None]
         if free:
-            p.slots[free[0]].age = years
+            slot = p.slots[free[0]]
+            if slot.profession == BABY:
+                # Under a year adds nothing to "infant"; any other age decides on its own.
+                if years > 0:
+                    slot.age, slot.profession = years, None
+                return
+            slot.age = years
         elif m.plural_pending and len(p.slots) < MAX_COUNT:
             new = self._new_slots(p, m.relation, 1, plural=True)
             m.slots += new
@@ -618,6 +668,15 @@ class RulesBrain:
 
     def _spread(self, p: _Parse, target: Mention, k: int, s: Span) -> list[Mention]:
         """'me and my wife are doctors' -> the profession applies to the whole group."""
+        if p.spans[target.pos].kind == "two_of_us":
+            # "with my friend, we both work in IT": the one other person named.
+            others = [
+                m
+                for m in self._mentions_in(p, s.sentence)
+                if m.pos < target.pos and m.relation != "self"
+            ]
+            if len(others) == 1 and len(others[0].slots) == 1:
+                return [target, others[0]]
         group = [m for m in p.mentions if m.group == target.group and m.pos < k]
         if len(group) < 2:
             return [target]
@@ -628,7 +687,12 @@ class RulesBrain:
         )
         has_we = any(p.spans[m.pos].kind == "we" for m in group)
         if plural_word or has_we or any(b.kind == "plural" for b in between):
-            return group
+            named = [m for m in group if not m.implied]
+            # "with my husband, both retired" covers the writer; "with my parents, both
+            # retired" and "with my wife who are" do not.
+            both = any(b.tokens[0] in BOTH_WORDS for b in between)
+            writer_too = both and sum(len(m.slots) for m in named) == 1
+            return group if writer_too else (named or [target])
         return [target]
 
     def _context_ref(self, p: _Parse, ctx: Context, what: str, value: str | int) -> bool:
@@ -713,6 +777,8 @@ class RulesBrain:
         p.country, p.purpose = found["country"], found["purpose"]
         if len(p.purpose_choices) > 1:
             p.purpose = None
+        elif p.purpose is None and trip["purpose"] is None and any(sl.host for sl in p.slots):
+            p.purpose = "family_visit"  # "my sister lives there"
 
     def _removals(self, p: _Parse) -> None:
         for k, s in enumerate(p.spans):
@@ -730,6 +796,8 @@ class RulesBrain:
         kinds = {s.kind for s in p.spans}
         if "restart" in kinds:
             return Extraction(intent="restart")
+        if "never_a_trip" in kinds:
+            return Extraction(on_topic=False)
         if "off_topic" in kinds and self._trip_details(p) < 2:
             # "translate this to French", "capital of France": one place name next to an
             # off-topic word is not a trip. "ignore that. Japan tourism, just me" still is.

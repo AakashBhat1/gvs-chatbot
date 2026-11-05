@@ -43,6 +43,8 @@ MARKERS: Final = frozenset(
         "conj",
         "weak_number",
         "off_topic",
+        "never_a_trip",
+        "host_after",
         "help",
         "office_question",
         "with_others",

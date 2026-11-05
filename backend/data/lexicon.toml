@@ -188,7 +188,7 @@ tourism = [
     "tourism", "tourist", "tour", "holiday", "holidays", "vacation", "vacations", "sightseeing",
     "honeymoon", "leisure", "ghumne", "ghoomne", "ghumna", "ghoomna", "ghumane", "ghoomane",
     "tourist visa", "family trip", "family holiday", "pleasure",
-    "summer trip", "winter trip", "summer break", "winter break", "road trip", "backpacking",
+    "holliday", "shopping trip", "for shopping", "go shopping", "school trip", "summer trip", "winter trip", "summer break", "winter break", "road trip", "backpacking",
     "घूमने", "घूमना", "टूरिज़्म", "छुट्टी", "छुट्टियाँ", "हॉलिडे",
 ]
 family_visit = [
@@ -202,7 +202,7 @@ business = [
     "for business", "on business", "business trip", "business meeting", "business visit",
     "business purpose", "business tour", "business ke liye", "conference", "meeting", "meetings",
     "expo", "trade fair", "exhibition", "work trip", "official trip", "client meeting",
-    "office trip", "business visa", "seminar", "summit",
+    "office trip", "office work", "office ka kaam", "office ke kaam", "business visa", "seminar", "summit",
     "मीटिंग", "कॉन्फ्रेंस",
 ]
 
@@ -211,7 +211,7 @@ employed = [
     "employed", "salaried", "salary", "employee", "job", "naukri", "private job", "private sector",
     "engineer", "software engineer", "developer", "manager", "teacher", "nurse", "banker",
     "accountant", "analyst", "executive", "corporate", "working professional", "work in",
-    "works in", "work at", "works at", "mnc", "professor", "it professional", "in it",
+    "works in", "work at", "works at", "mnc", "professor", "it professional", "in it", "in a bank", "at a bank", "bank job", "bank employee",
     "नौकरी", "जॉब", "सर्विस", "इंजीनियर", "टीचर", "मैनेजर", "प्राइवेट जॉब", "कंपनी में",
 ]
 government_employee = [
@@ -238,7 +238,7 @@ company_director = ["director", "company director", "business partner", "partner
 freelancer = ["freelancer", "freelance", "freelancing", "consultant", "contractor"]
 farmer = ["farmer", "farming", "kisan", "kheti", "agriculture", "agriculturist", "zamindar"]
 landlord_investor = ["landlord", "rental income", "rent income", "investor", "investments", "lives on rent"]
-seafarer = ["seafarer", "sailor", "merchant navy", "mariner", "on a ship", "offshore", "off shore", "off-shore", "oil rig"]
+seafarer = ["seafarer", "sailor", "merchant navy", "mariner", "on a ship", "offshore", "offshore engineer", "off shore", "off-shore", "oil rig"]
 retired = ["retired", "retire", "retd", "pensioner", "pension", "retirement", "रिटायर्ड", "रिटायर", "सेवानिवृत्त", "पेंशन"]
 homemaker = ["homemaker", "home maker", "housewife", "house wife", "househusband", "grihini", "ghar par", "ghar pe", "stays at home", "stay at home", "stay at home mom", "गृहिणी", "हाउसवाइफ"]
 unemployed = ["unemployed", "not working", "no job", "jobless", "between jobs", "berozgar", "job nahi", "kaam nahi"]
@@ -248,7 +248,7 @@ infant = ["baby", "infant", "toddler", "newborn", "new born"]
 other = ["other", "something else", "kuch aur"]
 
 [relations]
-self = ["i", "me", "myself", "i'm", "im", "i am", "main", "mai", "mujhe", "khud", "apne aap"]
+self = ["i", "me", "myself", "i'm", "im", "i am", "main", "mai", "mujhe", "khud", "apne aap", "raha hu", "raha hoon", "rahi hu", "rahi hoon", "ja raha hu", "ja raha hoon", "ja rahi hu", "ja rahi hoon", "jaa raha hu", "jaa raha hoon", "jaa rahi hu", "jaa rahi hoon"]
 spouse = ["wife", "wif", "wyf", "wifee", "husband", "husbnd", "hubbie", "spouse", "patni", "pati", "biwi", "wifey", "hubby", "mrs", "missus", "partner", "better half"]
 son = ["son", "sons", "beta", "bete", "betaa", "ladka", "boy"]
 daughter = ["daughter", "daughters", "beti", "betiyan", "ladki", "girl"]
@@ -280,7 +280,7 @@ remove = ["not going", "not coming", "isn't going", "isnt going", "isn't coming"
 greeting = ["hi", "hello", "hey", "hii", "hiii", "helo", "namaste", "namaskar", "hola", "good morning", "good afternoon", "good evening", "hey there", "ram ram", "sat sri akal"]
 business_word = ["business", "biz"]
 pronoun = ["he", "she", "they", "him", "her", "them", "woh", "wo", "unka", "uska", "his", "their"]
-conj = ["and", "aur", "or", "with", "plus", "n", "also", "along with", "together with", "saath", "ke saath", "ki saath", "&"]
+conj = ["and", "aur", "or", "with", "w", "plus", "n", "also", "along with", "together with", "saath", "ke saath", "ki saath", "&"]
 # Questions about what the bot covers: answered with the country list, never off-topic.
 help = [
     "available countries", "countries available", "which countries", "what countries",
@@ -324,6 +324,16 @@ off_topic = [
     "hack", "password", "bitcoin", "crypto", "stock", "homework", "girlfriend", "boyfriend",
     "capital", "news", "kahani", "gaana", "chutkula", "api key", "system prompt", "jailbreak",
 ]
+# Never a trip, even with a place and people in it: misuse, instructions to the bot, and
+# requests only a person or a booking site can answer. The model is not asked.
+never_a_trip = [
+    "fake", "faking", "forge", "forged", "forging", "forgery", "fabricate", "fabricated", "bogus",
+    "fraud", "you are now", "act as", "set country", "set purpose", "book me", "book a", "book my",
+    "cheapest", "which is better", "which is cheaper", "better than", "best time", "recommend",
+    "suggest",
+]
+# After a relation: "my sister lives there", "didi ke paas". They are visited, not travelling.
+host_after = ["lives", "live", "living", "stays", "ke paas", "ke pass", "ke yahan", "ke ghar"]
 # Hindi number words that are also English words; only numbers before a count noun.
 weak_number = ["do", "teen"]
 
@@ -349,7 +359,7 @@ words = [
     "july", "august", "september", "october", "november", "summer", "winter", "here", "where",
     "why", "how", "which", "tell", "know", "required", "require", "requirement", "requirements",
     "checklist", "list", "check", "show", "give", "send", "papers", "paper", "basically", "um",
-    "uh", "hmm", "hmmm", "umm", "ummm", "well", "wait", "ohh", "oh", "trip", "tickets", "ticket", "booked", "book", "booking",
+    "gonna", "attend", "attending", "uh", "hmm", "hmmm", "umm", "ummm", "well", "wait", "ohh", "oh", "trip", "tickets", "ticket", "booked", "book", "booking",
     "month long", "together", "ghar", "jayenge", "jaayenge", "jaenge", "jaa rahe", "ja rahe",
     "ja rahi", "ja raha", "hain na", "planning to", "abroad", "country", "tak", "par", "pe",
     "yaar", "bro please", "vala", "vali", "jo", "ye", "yeh", "inke", "unke", "humare", "hamko",

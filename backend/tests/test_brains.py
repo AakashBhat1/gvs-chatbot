@@ -343,8 +343,8 @@ def test_rules_place_purpose_count_and_intent_win() -> None:
 
 def test_model_fills_what_rules_found_nothing_for() -> None:
     rules = _ex()
-    model = _ex(country="japan", purpose="tourism", travellers=[{"relation": "self"}])
-    assert rules_precede(rules, model) == model
+    model = _ex(country="japan", travellers=[{"relation": "self"}])
+    assert rules_precede(rules, model) == model  # a purpose is the exception: test_trial_fixes.py
 
 
 def test_refs_merge_and_rules_only_refs_kept() -> None:
