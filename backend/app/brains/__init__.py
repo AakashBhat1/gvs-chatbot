@@ -15,6 +15,7 @@ from typing import Protocol
 
 from app.brains.combine import Combine, rules_precede
 from app.extraction import Context, Extraction
+from app.guard import before_attack
 
 log = logging.getLogger(__name__)
 
@@ -57,6 +58,12 @@ class Cascade:
         self.combine = combine or rules_precede
 
     def understand(self, message: str, ctx: Context) -> BrainResult:
+        safe = before_attack(message)
+        if message.strip() and not safe:
+            return BrainResult(Extraction(on_topic=False), True, "guard")
+        return self._ask_brains(safe, ctx)
+
+    def _ask_brains(self, message: str, ctx: Context) -> BrainResult:
         best: BrainResult | None = None
         first: BrainResult | None = None  # the cheapest brain's answer is the anchor
         for brain in self.brains:
@@ -69,7 +76,13 @@ class Cascade:
                 first = result
             else:
                 asked_purpose = ctx.asked is not None and ctx.asked.field == "purpose"
-                merged = self.combine(first.extraction, result.extraction, ctx.form, asked_purpose)
+                try:
+                    merged = self.combine(
+                        first.extraction, result.extraction, ctx.form, asked_purpose
+                    )
+                except ValueError:  # a bad merge must never take the bot down
+                    log.exception("could not merge the answer from brain %s", brain.name)
+                    continue
                 result = BrainResult(merged, result.confident, result.brain)
             if result.confident:
                 return result

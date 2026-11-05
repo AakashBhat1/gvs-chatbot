@@ -28,6 +28,7 @@ _REWRITES: Final = (
     (re.compile(r"\bthe us\b"), "usa"),
     (re.compile(r"\bb\.tech\b"), "btech"),
     (re.compile(r"\bdr\.(?=\s|$)"), "dr"),
+    (re.compile(r"(?<![\w-])-\d+"), " "),  # "age = -1" is not an age; "2-3" is untouched
 )
 _TOKEN = re.compile(
     r"[0-9]+"  # numbers

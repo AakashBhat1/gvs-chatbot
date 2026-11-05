@@ -22,6 +22,10 @@ reading is the anchor:
     swap it for another: if that job appears nowhere in the model's answer, it
     only recategorised the word ("works in a bank" became government employee).
 
+    A model's answer can be steered by the message, so what it may do alone is
+    limited: only the rules can confirm, and with no help from the rules it can
+    remove one person (never the writer) and overwrite one job per message.
+
 ``fill_blanks``
     The model's answer is used as it is; the rules only fill in a missing
     country or purpose. This was the behaviour before ``rules_precede``.
@@ -32,11 +36,11 @@ same for any later brain (local model now, Haiku later).
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Final
 
 from app.extraction import Extraction, TravellerPatch
-from app.form import TripForm
+from app.form import MAX_TRAVELLERS, TripForm
 
 # (rules' answer, later brain's answer, the form so far, the bot asked for the purpose)
 Combine = Callable[[Extraction, Extraction, TripForm, bool], Extraction]
@@ -87,6 +91,29 @@ def _keep_rules_reading(
     return merged.model_copy(update=update) if update else merged
 
 
+def _modest_edits(patches: Sequence[TravellerPatch], form: TripForm) -> list[TravellerPatch]:
+    """What a model may change on its own: see the module docstring."""
+    people = form.travellers
+    removed = overwritten = False
+    out: list[TravellerPatch] = []
+    for patch in patches:
+        current = people[patch.ref] if patch.ref is not None and patch.ref < len(people) else None
+        if patch.remove:
+            if removed or current is None or current.relation == "self":
+                continue
+            removed = True
+        elif (
+            current is not None
+            and patch.profession is not None
+            and current.profession not in (None, patch.profession)
+        ):
+            if overwritten:
+                patch = patch.model_copy(update={"profession": None})  # noqa: PLW2901
+            overwritten = True
+        out.append(patch)
+    return out
+
+
 def _people(
     rules: Extraction, model: Extraction, form: TripForm, *, asked_purpose: bool
 ) -> tuple[TravellerPatch, ...]:
@@ -102,8 +129,8 @@ def _people(
         model = model.model_copy(
             update={"travellers": tuple(_without_purpose(p) for p in model.travellers)}
         )
-    if not rules.travellers:
-        return model.travellers  # the rules saw nobody: nothing to check against
+    if not rules.travellers:  # the rules saw nobody: nothing to check against
+        return tuple(_modest_edits(model.travellers, form)[:MAX_TRAVELLERS])
 
     def who(p: TravellerPatch) -> str | None:
         if p.ref is not None and p.ref < len(form.travellers):
@@ -132,8 +159,8 @@ def _people(
             update={"ref": ref, "remove": theirs.remove or mine.remove}
         )
         out.append(_keep_rules_reading(merged, mine, model_jobs))
-    out += [p for p in left if p.ref is not None]
-    return tuple(out)
+    out += _modest_edits([p for p in left if p.ref is not None], form)
+    return tuple(out[:MAX_TRAVELLERS])  # the rules' people come first
 
 
 def _kinds(ex: Extraction) -> int:
@@ -161,9 +188,10 @@ def rules_precede(
     if group is not None and any(p.relation == group for p in people):
         group = None
     can_use_model_purpose = asked_purpose and not rules.purpose_choices
+    model_intent = "give_details" if model.intent == "confirm" else model.intent
     return Extraction(
         on_topic=True,
-        intent=rules.intent if rules.intent != "give_details" else model.intent,
+        intent=rules.intent if rules.intent != "give_details" else model_intent,
         country=rules.country or (None if rules.other_country else model.country),
         purpose=rules.purpose or (model.purpose if can_use_model_purpose else None),
         traveller_count=rules.traveller_count or model.traveller_count,
