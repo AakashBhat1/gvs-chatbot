@@ -369,12 +369,12 @@ def test_a_ref_and_a_relation_for_the_same_person_are_one_person() -> None:
     model = _ex(
         travellers=[
             {"ref": 0, "profession": "business_owner"},
-            {"ref": 1, "profession": "self_employed_professional"},
+            {"ref": 1, "profession": "employed"},
         ]
     )
     assert _rel(rules_precede(rules, model, form)) == [
         (0, None, "business_owner", None),
-        (1, None, "self_employed_professional", None),
+        (1, None, "employed", None),
     ]
 
 

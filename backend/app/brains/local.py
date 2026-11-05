@@ -164,9 +164,9 @@ or stay with (the son they visit, the brother whose wedding it is) are not trave
 include {"relation": "self"}.
 - Use the most specific relation said: son or daughter when said; child only for \
 "kids", "children", "baby". Never invent a person ("two adults" is not a spouse).
-- profession: only when a job is said, using "Words". Never "other" unless the \
-message says "other". Give a job only to the person it is said about: "with my \
-wife" says nothing about her job.
+- profession: only when a job is said, using "Words". If the job is not clearly \
+one of those, use "other"; never pick the nearest one. Give a job only to the \
+person it is said about: "with my wife" says nothing about her job.
 - age: a number next to a person is their age ("son 6", "me 40", "(35)", "10 year \
 old son", "5 saal ka"). A baby or newborn gets profession "infant" and no age.
 - Someone already in the form is given by "ref", not as a new entry.
@@ -456,7 +456,7 @@ def tidy(ex: Extraction, ctx: Context) -> Extraction:
             for p in ex.travellers
         )
         ex = ex.model_copy(update={"travellers": people})
-    if any(p.profession == "other" for p in ex.travellers):  # a guess, never said
+    if any(p.profession == "other" for p in ex.travellers):  # the visitor picks "Other" themselves
         people = tuple(
             p.model_copy(update={"profession": None}) if p.profession == "other" else p
             for p in ex.travellers

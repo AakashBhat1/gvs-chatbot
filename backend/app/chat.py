@@ -446,6 +446,8 @@ class ChatEngine:
                 if adults:
                     asked = ("profession", adults)
                     text = T.ask_profession(form, adults, tree)
+                    # A job the bot can't place ("gamer") reaches "Other" after one miss.
+                    show = show or (misses > 0 and state.asked_field == "profession")
                     buttons = T.profession_buttons(adults[0], tree) if show else ()
                     if same := _last_answer(state, adults):
                         buttons = (T.same_button(same, tree), *buttons)

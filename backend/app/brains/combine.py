@@ -21,6 +21,8 @@ reading is the anchor:
     The model may move a job the rules read to the right person, but may not
     swap it for another: if that job appears nowhere in the model's answer, it
     only recategorised the word ("works in a bank" became government employee).
+    A job with its own documents and a clear word for it, like government employee
+    or doctor, is dropped when only the model read it, so the bot asks instead.
 
     A model's answer can be steered by the message, so what it may do alone is
     limited. Only the rules can confirm or remove someone. For a person the rules
@@ -49,6 +51,16 @@ Combine = Callable[[Extraction, Extraction, TripForm, Asked | None], Extraction]
 
 _DETAILS: Final = ("profession", "age", "country", "purpose")
 _ANSWERABLE: Final = ("profession", "age")
+# Each has its own documents and its real words are in the lexicon, so if the rules did
+# not read one, a model guessed it ("i play games for a living" became a doctor or lawyer).
+_NEEDS_A_REAL_WORD: Final = frozenset(
+    {
+        "self_employed_professional",
+        "government_employee",
+        "defence_personnel",
+        "company_director",
+    }
+)
 BABY: Final = "infant"
 
 
@@ -138,6 +150,19 @@ def _model_alone(
     return out
 
 
+def _without_guessed_titles(
+    people: Sequence[TravellerPatch], rules: Extraction, form: TripForm
+) -> tuple[TravellerPatch, ...]:
+    """Drop a job that needs a real word when neither the rules nor the form have it."""
+    read = {p.profession for p in rules.travellers} | {t.profession for t in form.travellers}
+    return tuple(
+        p.model_copy(update={"profession": None})
+        if p.profession in _NEEDS_A_REAL_WORD and p.profession not in read
+        else p
+        for p in people
+    )
+
+
 def _people(
     rules: Extraction, model: Extraction, form: TripForm, asked: Asked | None
 ) -> tuple[TravellerPatch, ...]:
@@ -206,7 +231,7 @@ def rules_precede(
         # "what's the best time to visit Japan": a question, not a trip; keep nothing
         return Extraction(on_topic=False, asks_office=rules.asks_office or model.asks_office)
     so_far = form or TripForm()
-    people = _people(rules, model, so_far, asked)
+    people = _without_guessed_titles(_people(rules, model, so_far, asked), rules, so_far)
     group = rules.group_of or model.group_of
     if group is not None and any(p.relation == group for p in people):
         group = None

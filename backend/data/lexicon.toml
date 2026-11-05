@@ -232,10 +232,11 @@ business_owner = [
     "my business", "have a business", "has a business", "run a business", "runs a business",
     "do business", "does business", "business karta", "business karti", "business karte",
     "proprietor", "shop", "shopkeeper", "dukaan", "dukan", "trader", "vyapar", "vyapari",
+    "bakery", "restaurant", "cafe", "salon", "own a", "owns a",
     "बिज़नेस", "बिजनेस", "व्यापार", "व्यापारी", "दुकान", "दुकानदार",
 ]
 company_director = ["director", "company director", "business partner", "partner in", "founder", "co-founder", "ceo", "md", "managing director"]
-freelancer = ["freelancer", "freelance", "freelancing", "consultant", "contractor"]
+freelancer = ["freelancer", "freelance", "freelancing", "consultant", "contractor", "gamer", "streamer", "youtuber", "influencer", "content creator", "gig worker"]
 farmer = ["farmer", "farming", "kisan", "kheti", "agriculture", "agriculturist", "zamindar"]
 landlord_investor = ["landlord", "rental income", "rent income", "investor", "investments", "lives on rent"]
 seafarer = ["seafarer", "sailor", "merchant navy", "mariner", "on a ship", "offshore", "offshore engineer", "off shore", "off-shore", "oil rig"]

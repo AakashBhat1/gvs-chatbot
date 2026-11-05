@@ -10,12 +10,12 @@
  "counts": {
   "countries": 2651,
   "other_countries": 7329,
-  "professions": 59915,
+  "professions": 59914,
   "common_words": 38067
  },
  "filtered": {
   "city_common_word": 1306,
-  "job_in_use": 9,
+  "job_in_use": 10,
   "place_ambiguous": 35,
   "place_in_hand_lexicon": 1021,
   "place_skipped": 3956
@@ -68024,7 +68024,6 @@
    "youth support worker",
    "youth teacher",
    "youth worker",
-   "youtuber",
    "zig zag stitcher",
    "zigzag appliquer",
    "zigzag elastic attacher",
