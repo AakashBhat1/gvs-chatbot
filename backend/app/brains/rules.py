@@ -211,6 +211,7 @@ class RulesBrain:
                 and len(s.tokens) == 1
                 and prev is not None
                 and prev.kind in ("country", "purpose")
+                and spans[k - 1].tokens != ("for",)  # "Spain for me" is the writer
             ):
                 s.kind = "filler"
         return [s for s in spans if s.kind != "filler"]

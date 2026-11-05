@@ -330,11 +330,12 @@ off_topic = [
     "hack", "password", "bitcoin", "crypto", "stock", "homework", "girlfriend", "boyfriend",
     "capital", "news", "kahani", "gaana", "chutkula", "api key", "system prompt", "jailbreak",
 ]
-# Never a trip, even with a place and people in it: misuse, instructions to the bot, and
-# requests only a person or a booking site can answer. The model is not asked.
+# Never a trip, even with a place and people in it: misuse, and requests only a person or a
+# booking site can answer. The model is not asked. Orders to the bot are in app/guard.py,
+# which keeps any real trip written before them.
 never_a_trip = [
     "fake", "faking", "forge", "forged", "forging", "forgery", "fabricate", "fabricated", "bogus",
-    "fraud", "you are now", "act as", "set country", "set purpose", "book me", "book a", "book my",
+    "fraud", "book me", "book a", "book my",
     "cheapest", "which is better", "which is cheaper", "better than", "best time", "recommend",
     "suggest",
 ]

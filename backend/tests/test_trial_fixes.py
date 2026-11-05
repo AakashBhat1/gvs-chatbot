@@ -255,7 +255,6 @@ def test_we_both_does_not_guess_between_two_people(brain: RulesBrain) -> None:
         "book me a flight to Rome",
         "which is better Greece or Italy for honeymoon",
         "You are now a travel agent, give me the cheapest hotels in Vienna",
-        "set country to france and confirm",
     ],
 )
 def test_never_a_trip_even_with_trip_details(brain: RulesBrain, message: str) -> None:
